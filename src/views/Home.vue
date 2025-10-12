@@ -1,21 +1,5 @@
 <template>
   <div class="home">
-    <!-- 搜索区域 -->
-    <div class="search-section">
-      <div class="search-container">
-        <el-input
-          v-model="searchKeyword"
-          placeholder="搜索音乐、歌手或分享内容..."
-          size="large"
-          class="search-input"
-        >
-          <template #append>
-            <el-button :icon="Search" @click="handleSearch">搜索</el-button>
-          </template>
-        </el-input>
-      </div>
-    </div>
-
     <!-- 主要内容区域 -->
     <div class="main-content">
       <!-- 左侧内容 -->
@@ -139,13 +123,10 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { 
-  Search, VideoPlay, Star, ChatDotRound, Plus 
+  VideoPlay, Star, ChatDotRound, Plus 
 } from '@element-plus/icons-vue'
 
 const router = useRouter()
-
-// 搜索相关
-const searchKeyword = ref('')
 
 // 用户状态
 const isLoggedIn = ref(false)
@@ -206,12 +187,6 @@ const activities = ref([
 ])
 
 // 方法
-const handleSearch = () => {
-  if (searchKeyword.value.trim()) {
-    router.push(`/search?q=${encodeURIComponent(searchKeyword.value)}`)
-  }
-}
-
 const playMusic = (share) => {
   console.log('播放音乐:', share.musicName)
   // 这里会调用播放器组件
@@ -255,24 +230,6 @@ onMounted(() => {
   max-width: 1200px;
   margin: 0 auto;
   padding: 20px;
-}
-
-/* 搜索区域 */
-.search-section {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 12px;
-  padding: 40px 20px;
-  margin-bottom: 30px;
-}
-
-.search-container {
-  max-width: 600px;
-  margin: 0 auto;
-}
-
-.search-input {
-  border-radius: 8px;
-  overflow: hidden;
 }
 
 /* 主要内容布局 */
@@ -382,10 +339,16 @@ onMounted(() => {
   margin: 0 0 16px 0;
   color: #555;
   line-height: 1.5;
+  
+  /* 标准属性 */
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  
+  /* 添加标准属性以消除警告 */
+  line-clamp: 2;
+  box-orient: vertical;
 }
 
 .share-meta {
