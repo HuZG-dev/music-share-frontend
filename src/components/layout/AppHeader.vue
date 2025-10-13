@@ -1,13 +1,22 @@
 <template>
   <header class="app-header">
     <div class="header-content">
-      <div class="logo">
-        <router-link to="/">
-          <h2>🎵 音乐分享</h2>
-        </router-link>
+      <!-- 左侧：Logo和导航按钮 -->
+      <div class="header-left">
+        <div class="logo">
+          <router-link to="/">
+            <h2>🎵 音乐分享</h2>
+          </router-link>
+        </div>
+        <nav class="main-nav">
+          <router-link to="/recommend" class="nav-item">推荐</router-link>
+          <router-link to="/hot" class="nav-item">热门</router-link>
+          <router-link to="/categories" class="nav-item">分类</router-link>
+          <router-link to="/care" class="nav-item">关注</router-link>
+        </nav>
       </div>
-      
-      <!-- 搜索框 - 居中位置 -->
+
+      <!-- 中间：搜索框 -->
       <div class="search-container">
         <el-input
           v-model="searchKeyword"
@@ -20,31 +29,34 @@
           </template>
         </el-input>
       </div>
-      
-      <nav class="nav">
-        <!-- 根据登录状态显示不同内容 -->
-        <div v-if="isLoggedIn" class="user-actions">
-          <!-- 分享按钮 -->
-          <el-dropdown trigger="hover" class="share-dropdown">
-            <span class="share-btn">
-              <el-icon size="20"><Plus /></el-icon>
-            </span>
-            <template #dropdown>
-              <el-dropdown-menu>
-                <el-dropdown-item @click="goToCreateShare">
-                  <el-icon><Edit /></el-icon>
-                  发布分享
-                </el-dropdown-item>
-                <el-dropdown-item @click="goToShareManagement">
-                  <el-icon><FolderOpened /></el-icon>
-                  分享管理
-                </el-dropdown-item>
-              </el-dropdown-menu>
-            </template>
-          </el-dropdown>
 
-          <!-- 用户菜单 -->
-          <el-dropdown class="user-menu">
+      <!-- 右侧：用户操作 -->
+      <div class="header-right">
+        <!-- 分享按钮 -->
+        <el-dropdown trigger="hover" class="share-dropdown">
+          <div class="share-container">
+            <span class="share-btn">
+              <el-icon size="16"><Plus /></el-icon>
+            </span>
+            <span class="share-text">分享</span>
+          </div>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item @click="goToCreateShare">
+                <el-icon><Edit /></el-icon>
+                发布分享
+              </el-dropdown-item>
+              <el-dropdown-item @click="goToShareManagement">
+                <el-icon><FolderOpened /></el-icon>
+                分享管理
+              </el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
+
+        <!-- 用户菜单 -->
+        <div v-if="isLoggedIn" class="user-menu">
+          <el-dropdown>
             <span class="user-avatar">
               <el-avatar :size="32" :src="userAvatar" />
             </span>
@@ -57,10 +69,10 @@
           </el-dropdown>
         </div>
         <div v-else class="auth-links">
-          <router-link to="/login">登录</router-link>
-          <router-link to="/register">注册</router-link>
+          <router-link to="/login" class="auth-link">登录</router-link>
+          <router-link to="/register" class="auth-link">注册</router-link>
         </div>
-      </nav>
+      </div>
     </div>
   </header>
 </template>
@@ -103,7 +115,6 @@ const handleSearch = () => {
     return
   }
   
-  // 跳转到搜索结果页面，传递搜索关键词
   router.push({
     path: '/search',
     query: {
@@ -111,7 +122,6 @@ const handleSearch = () => {
     }
   })
   
-  // 清空搜索框
   searchKeyword.value = ''
 }
 
@@ -127,7 +137,6 @@ const goToShareManagement = () => {
 
 // 跳转到个人中心
 const goToProfile = () => {
-  // 这里可以跳转到个人中心页面
   ElMessage.info('个人中心功能开发中...')
 }
 
@@ -142,14 +151,13 @@ const handleLogout = () => {
   router.push('/login')
 }
 
-// 监听存储变化（用于响应登录状态变化）
+// 监听存储变化
 const handleStorageChange = () => {
   checkLoginStatus()
 }
 
 onMounted(() => {
   checkLoginStatus()
-  // 监听 localStorage 变化
   window.addEventListener('storage', handleStorageChange)
 })
 
@@ -164,6 +172,9 @@ onUnmounted(() => {
   color: white;
   padding: 0 20px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  position: sticky;
+  top: 0;
+  z-index: 1000;
 }
 
 .header-content {
@@ -176,27 +187,60 @@ onUnmounted(() => {
   gap: 20px;
 }
 
+/* 左侧区域 */
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 40px;
+}
+
 .logo h2 {
   color: #42b983;
   margin: 0;
+  font-size: 20px;
 }
 
 .logo a {
   text-decoration: none;
 }
 
-/* 搜索框容器 - 居中布局 */
+/* 主导航 */
+.main-nav {
+  display: flex;
+  align-items: center;
+  gap: 30px;
+}
+
+.nav-item {
+  color: white;
+  text-decoration: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  transition: all 0.3s;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.nav-item:hover {
+  background-color: rgba(255,255,255,0.1);
+  color: #42b983;
+}
+
+.nav-item.router-link-active {
+  background-color: #42b983;
+  color: white;
+}
+
+/* 搜索框 */
 .search-container {
   flex: 1;
   max-width: 400px;
-  margin: 0 20px;
 }
 
 .search-input {
   width: 100%;
 }
 
-/* 调整搜索框样式 */
 .search-input :deep(.el-input-group__append) {
   background-color: #42b983;
   border-color: #42b983;
@@ -210,53 +254,44 @@ onUnmounted(() => {
   background-color: #3aa876;
 }
 
-.nav {
+/* 右侧区域 */
+.header-right {
   display: flex;
   align-items: center;
   gap: 20px;
 }
 
-.nav a {
-  color: white;
-  text-decoration: none;
-  padding: 5px 10px;
-  border-radius: 4px;
-  transition: background-color 0.3s;
-}
-
-.nav a:hover {
-  background-color: rgba(255,255,255,0.1);
-}
-
-.nav a.router-link-active {
-  background-color: #42b983;
-}
-
-/* 用户操作区域 */
-.user-actions {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-/* 分享按钮样式 */
+/* 分享按钮 */
 .share-dropdown {
   display: flex;
   align-items: center;
+}
+
+.share-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: background-color 0.3s;
+  gap: 2px;
+}
+
+.share-container:hover {
+  background-color: rgba(255,255,255,0.1);
 }
 
 .share-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   background-color: #42b983;
   color: white;
-  cursor: pointer;
   transition: all 0.3s ease;
-  border: none;
 }
 
 .share-btn:hover {
@@ -264,7 +299,13 @@ onUnmounted(() => {
   transform: scale(1.05);
 }
 
-/* 用户菜单样式 */
+.share-text {
+  font-size: 12px;
+  color: white;
+  line-height: 1;
+}
+
+/* 用户菜单 */
 .user-menu {
   display: flex;
   align-items: center;
@@ -283,16 +324,38 @@ onUnmounted(() => {
   background-color: rgba(255,255,255,0.1);
 }
 
+/* 登录注册链接 */
+.auth-links {
+  display: flex;
+  gap: 15px;
+}
+
+.auth-link {
+  color: white;
+  text-decoration: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  transition: background-color 0.3s;
+  font-size: 14px;
+}
+
+.auth-link:hover {
+  background-color: rgba(255,255,255,0.1);
+}
+
+.auth-link:first-child {
+  background-color: #42b983;
+}
+
+.auth-link:first-child:hover {
+  background-color: #3aa876;
+}
+
 /* 下拉菜单项样式 */
 :deep(.el-dropdown-menu__item) {
   display: flex;
   align-items: center;
   gap: 8px;
-}
-
-.auth-links {
-  display: flex;
-  gap: 10px;
 }
 
 /* 响应式设计 */
@@ -301,30 +364,39 @@ onUnmounted(() => {
     flex-wrap: wrap;
     height: auto;
     padding: 10px 0;
+    gap: 10px;
+  }
+  
+  .header-left {
+    gap: 20px;
+  }
+  
+  .main-nav {
+    gap: 15px;
+  }
+  
+  .nav-item {
+    padding: 6px 12px;
+    font-size: 14px;
   }
   
   .search-container {
     order: 3;
     flex: 1 0 100%;
-    margin: 10px 0 0 0;
     max-width: none;
   }
   
-  .logo {
-    flex: 1;
-  }
-  
-  .nav {
-    flex: 0;
-  }
-  
-  .user-actions {
-    gap: 8px;
+  .header-right {
+    gap: 15px;
   }
   
   .share-btn {
-    width: 32px;
-    height: 32px;
+    width: 24px;
+    height: 24px;
+  }
+  
+  .share-text {
+    font-size: 11px;
   }
 }
 </style>
