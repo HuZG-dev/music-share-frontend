@@ -1,13 +1,15 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import Home from '@/views/Home.vue'
 import Login from '@/views/Login.vue'
 import Register from '@/views/Register.vue'
+import Recommend from '@/views/Recommend.vue'
+import Hot from '@/views/Hot.vue'
+import Categories from '@/views/Categories.vue'
+import Care from '@/views/Care.vue'
 
 const routes = [
   {
     path: '/',
-    name: 'home',
-    component: Home
+    redirect: '/recommend'
   },
   {
     path: '/login',
@@ -18,6 +20,26 @@ const routes = [
     path: '/register',
     name: 'register',
     component: Register
+  },
+  {
+    path: '/recommend',
+    name: 'recommend',
+    component: Recommend
+  },
+  {
+    path: '/hot',
+    name: 'hot',
+    component: Hot
+  },
+  {
+    path: '/categories',
+    name: 'categories',
+    component: Categories
+  },
+  {
+    path: '/care',
+    name: 'care',
+    component: Care
   }
 ]
 
