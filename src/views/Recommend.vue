@@ -52,11 +52,11 @@
                   </div>
                 </div>
                 <div class="card-content">
-                  <h4 class="music-title">{{ share.musicName }}</h4>
-                  <p class="artist-name">{{ share.artist }}</p>
+                  <h4 class="music-title line-clamp-1">{{ share.musicName }}</h4>
+                  <p class="artist-name line-clamp-1">{{ share.artist }}</p>
                   <div class="user-info">
                     <el-avatar :size="24" :src="share.userAvatar" />
-                    <span class="user-name">{{ share.userName }}</span>
+                    <span class="user-name line-clamp-1">{{ share.userName }}</span>
                   </div>
                 </div>
               </div>
@@ -82,8 +82,8 @@
                   </div>
                 </div>
                 <div class="activity-content">
-                  <h4 class="activity-title">{{ activity.title }}</h4>
-                  <p class="activity-desc">{{ activity.description }}</p>
+                  <h4 class="activity-title line-clamp-1">{{ activity.title }}</h4>
+                  <p class="activity-desc line-clamp-2">{{ activity.description }}</p>
                   <div class="activity-meta">
                     <span class="activity-time">{{ activity.time }}</span>
                     <span class="activity-participants">{{ activity.participants }}人参与</span>
@@ -110,8 +110,8 @@
               >
                 <span :class="['ranking-order', getRankClass(index)]">{{ index + 1 }}</span>
                 <div class="ranking-info">
-                  <h5>{{ share.musicName }}</h5>
-                  <p>{{ share.artist }}</p>
+                  <h5 class="line-clamp-1">{{ share.musicName }}</h5>
+                  <p class="line-clamp-1">{{ share.artist }}</p>
                 </div>
                 <span class="play-count">{{ formatCount(share.playCount) }}</span>
               </div>
@@ -149,8 +149,8 @@
               >
                 <el-avatar :size="32" :src="share.userAvatar" />
                 <div class="latest-info">
-                  <h6>{{ share.musicName }}</h6>
-                  <p>{{ share.userName }} · {{ share.time }}</p>
+                  <h6 class="line-clamp-1">{{ share.musicName }}</h6>
+                  <p class="line-clamp-1">{{ share.userName }} · {{ share.time }}</p>
                 </div>
               </div>
             </div>
@@ -388,6 +388,10 @@ const formatCount = (count) => {
 const filterByCategory = (categoryId) => {
   console.log('筛选分类:', categoryId)
 }
+
+onMounted(() => {
+  // 可以在这里添加初始化逻辑
+})
 </script>
 
 <style scoped>
@@ -472,6 +476,23 @@ const filterByCategory = (categoryId) => {
   font-size: 20px;
   font-weight: 600;
   color: #333;
+}
+
+/* 文本截断工具类 */
+.line-clamp-1 {
+  display: -webkit-box;
+  /* -webkit-line-clamp: 1; */
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.line-clamp-2 {
+  display: -webkit-box;
+  /* -webkit-line-clamp: 2;/ */
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* 分享网格布局 */
@@ -654,10 +675,6 @@ const filterByCategory = (categoryId) => {
   font-size: 12px;
   color: #666;
   line-height: 1.4;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
 }
 
 .activity-meta {
@@ -703,11 +720,10 @@ const filterByCategory = (categoryId) => {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 8px 0;
+  padding: 8px;
   cursor: pointer;
   transition: background-color 0.2s;
   border-radius: 4px;
-  padding: 8px;
 }
 
 .ranking-item:hover {
@@ -745,6 +761,7 @@ const filterByCategory = (categoryId) => {
 
 .ranking-info {
   flex: 1;
+  min-width: 0; /* 防止flex项目溢出 */
 }
 
 .ranking-info h5 {
@@ -801,11 +818,10 @@ const filterByCategory = (categoryId) => {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 8px 0;
+  padding: 8px;
   cursor: pointer;
   transition: background-color 0.2s;
   border-radius: 4px;
-  padding: 8px;
 }
 
 .latest-item:hover {
@@ -814,6 +830,7 @@ const filterByCategory = (categoryId) => {
 
 .latest-info {
   flex: 1;
+  min-width: 0; /* 防止flex项目溢出 */
 }
 
 .latest-info h6 {
@@ -852,6 +869,25 @@ const filterByCategory = (categoryId) => {
   
   .banner-content h3 {
     font-size: 20px;
+  }
+  
+  .banner-content p {
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .section {
+    padding: 16px;
+  }
+  
+  .share-grid,
+  .activities-grid {
+    gap: 12px;
+  }
+  
+  .category-list {
+    grid-template-columns: 1fr;
   }
 }
 </style>
