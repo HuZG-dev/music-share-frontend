@@ -1,50 +1,88 @@
 <template>
   <div class="login-container">
     <div class="login-form">
-      <h2>登录音乐分享平台</h2>
-      <el-form :model="form" :rules="rules" ref="formRef">
-        <el-form-item prop="phone">
-          <el-input
-            v-model="form.phone"
-            placeholder="请输入手机号"
-            size="large"
-            :prefix-icon="Iphone"
-          />
-        </el-form-item>
-        
-        <el-form-item prop="password">
-          <el-input
-            v-model="form.password"
-            type="password"
-            placeholder="请输入密码"
-            size="large"
-            :prefix-icon="Lock"
-            show-password
-          />
-        </el-form-item>
+      <!-- 已登录状态 -->
+      <div v-if="isLoggedIn" class="logged-in-status">
+        <div class="welcome-section">
+          <div class="welcome-icon">🎉</div>
+          <h2 class="welcome-title">欢迎回来！</h2>
+          <p class="welcome-subtitle">您已成功登录音乐分享平台</p>
+        </div>
 
-        <el-form-item>
-          <el-button 
-            type="primary" 
-            size="large" 
-            @click="handleLogin"
-            :loading="loading"
-            style="width: 100%"
-          >
-            登录
-          </el-button>
-        </el-form-item>
-      </el-form>
+        <div class="user-card">
+          <div class="user-avatar-wrapper">
+            <el-avatar :size="80" :src="userInfo.avatar" class="user-avatar">
+              <span v-if="!userInfo.avatar" class="avatar-text">
+                {{ userInfo.nickname?.charAt(0) || '用' }}
+              </span>
+            </el-avatar>
+          </div>
+          <div class="user-info-content">
+            <h3 class="user-name">{{ userInfo.nickname }}</h3>
+            <p class="user-phone">
+              <el-icon><Iphone /></el-icon>
+              {{ userInfo.phone }}
+            </p>
+          </div>
+        </div>
 
-      <div class="login-links">
-        <router-link to="/register">还没有账号？立即注册</router-link>
+        <div class="action-section">
+          <button class="custom-btn primary-btn" @click="goToHome">
+            进入首页
+          </button>
+          <button class="custom-btn secondary-btn" @click="handleLogout">
+            退出登录
+          </button>
+        </div>
+      </div>
+
+      <!-- 未登录状态 - 登录表单 -->
+      <div v-else>
+        <h2 class="form-title">登录音乐分享平台</h2>
+        <el-form :model="form" :rules="rules" ref="formRef">
+          <el-form-item prop="phone">
+            <el-input
+              v-model="form.phone"
+              placeholder="请输入手机号"
+              size="large"
+              :prefix-icon="Iphone"
+            />
+          </el-form-item>
+          
+          <el-form-item prop="password">
+            <el-input
+              v-model="form.password"
+              type="password"
+              placeholder="请输入密码"
+              size="large"
+              :prefix-icon="Lock"
+              show-password
+            />
+          </el-form-item>
+
+          <el-form-item>
+            <el-button 
+              type="primary" 
+              size="large" 
+              @click="handleLogin"
+              :loading="loading"
+              class="login-btn"
+            >
+              登录
+            </el-button>
+          </el-form-item>
+        </el-form>
+
+        <div class="login-links">
+          <router-link to="/register">还没有账号？立即注册</router-link>
+        </div>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, reactive, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Iphone, Lock } from '@element-plus/icons-vue'
@@ -53,6 +91,8 @@ import { userLogin } from '@/api/user'
 const router = useRouter()
 const formRef = ref()
 const loading = ref(false)
+const isLoggedIn = ref(false)
+const userInfo = ref({})
 
 const form = reactive({
   phone: '',
@@ -70,6 +110,23 @@ const rules = {
   ]
 }
 
+// 检查登录状态
+const checkLoginStatus = () => {
+  const token = localStorage.getItem('token')
+  const storedUserInfo = localStorage.getItem('userInfo')
+  
+  isLoggedIn.value = !!token
+  
+  if (storedUserInfo && token) {
+    try {
+      userInfo.value = JSON.parse(storedUserInfo)
+    } catch (e) {
+      console.error('解析用户信息失败:', e)
+    }
+  }
+}
+
+// 登录处理
 const handleLogin = async () => {
   try {
     await formRef.value.validate()
@@ -77,26 +134,34 @@ const handleLogin = async () => {
     
     const response = await userLogin(form)
     
-    // 保存token
-    localStorage.setItem('token', response.message)
-    
-    // 模拟用户信息（实际应该从接口获取）
-    const userInfo = {
-      nickname: form.phone.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2'), // 手机号脱敏
-      phone: form.phone,
-      avatar: '' // 可以设置默认头像
+    if (response.code === 200) {
+      const loginData = response.data
+      
+      // 保存token
+      localStorage.setItem('token', loginData.token)
+      
+      // 保存用户信息
+      userInfo.value = {
+        id: loginData.userInfo.id,
+        nickname: loginData.userInfo.nickname,
+        phone: loginData.userInfo.phone,
+        avatar: loginData.userInfo.avatar || ''
+      }
+      localStorage.setItem('userInfo', JSON.stringify(userInfo.value))
+      
+      isLoggedIn.value = true
+      ElMessage.success('登录成功！')
+      
+      // 跳转到首页
+      router.push('/')
+    } else {
+      ElMessage.error(response.message || '登录失败')
     }
-    localStorage.setItem('userInfo', JSON.stringify(userInfo))
-    
-    ElMessage.success('登录成功！')
-    
-    // 刷新页面以更新导航栏状态
-    window.location.reload()
     
   } catch (error) {
     console.error('登录失败:', error)
     if (error.response) {
-      ElMessage.error(error.response.data.message || '登录失败')
+      ElMessage.error(error.response.data?.message || '登录失败')
     } else {
       ElMessage.error('网络错误，请稍后重试')
     }
@@ -104,6 +169,37 @@ const handleLogin = async () => {
     loading.value = false
   }
 }
+
+// 退出登录
+const handleLogout = () => {
+  localStorage.removeItem('token')
+  localStorage.removeItem('userInfo')
+  isLoggedIn.value = false
+  userInfo.value = {}
+  ElMessage.success('已退出登录')
+  
+  // 刷新页面以重置状态
+  window.location.reload()
+}
+
+// 跳转到首页
+const goToHome = () => {
+  router.push('/')
+}
+
+// 监听存储变化
+const handleStorageChange = () => {
+  checkLoginStatus()
+}
+
+onMounted(() => {
+  checkLoginStatus()
+  window.addEventListener('storage', handleStorageChange)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('storage', handleStorageChange)
+})
 </script>
 
 <style scoped>
@@ -113,20 +209,144 @@ const handleLogin = async () => {
   align-items: center;
   justify-content: center;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 20px;
 }
 
 .login-form {
   background: white;
   padding: 40px;
-  border-radius: 10px;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-  width: 400px;
+  border-radius: 16px;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+  width: 100%;
+  max-width: 420px;
 }
 
-.login-form h2 {
+/* 已登录状态样式 */
+.logged-in-status {
+  text-align: center;
+}
+
+.welcome-section {
+  margin-bottom: 30px;
+}
+
+.welcome-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.welcome-title {
+  font-size: 24px;
+  font-weight: 600;
+  color: #2c3e50;
+  margin: 0 0 8px 0;
+}
+
+.welcome-subtitle {
+  color: #7f8c8d;
+  font-size: 14px;
+  margin: 0;
+}
+
+.user-card {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border-radius: 12px;
+  padding: 24px;
+  margin: 24px 0;
+  border: 1px solid #e9ecef;
+}
+
+.user-avatar-wrapper {
+  margin-bottom: 16px;
+}
+
+.user-avatar {
+  border: 4px solid white;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.avatar-text {
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.user-info-content {
+  text-align: center;
+}
+
+.user-name {
+  font-size: 18px;
+  font-weight: 600;
+  color: #2c3e50;
+  margin: 0 0 8px 0;
+}
+
+.user-phone {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: #7f8c8d;
+  font-size: 14px;
+  margin: 0;
+}
+
+.action-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+
+.custom-btn {
+  width: 100%;
+  height: 44px;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.primary-btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.primary-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.secondary-btn {
+  background: transparent;
+  color: #667eea;
+  border: 1px solid #667eea;
+}
+
+.secondary-btn:hover {
+  background: #f8f9fa;
+  transform: translateY(-1px);
+}
+
+/* 未登录状态样式 */
+.form-title {
   text-align: center;
   margin-bottom: 30px;
-  color: #333;
+  color: #2c3e50;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.login-btn {
+  width: 100%;
+  height: 44px;
+  border-radius: 8px;
+  font-weight: 500;
 }
 
 .login-links {
@@ -137,6 +357,7 @@ const handleLogin = async () => {
 .login-links a {
   color: #667eea;
   text-decoration: none;
+  font-weight: 500;
 }
 
 .login-links a:hover {

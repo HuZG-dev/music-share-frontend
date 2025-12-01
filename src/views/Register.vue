@@ -1,7 +1,7 @@
 <template>
   <div class="register-container">
     <div class="register-form">
-      <h2>注册账号</h2>
+      <h2>注册音乐分享平台</h2>
       <el-form :model="form" :rules="rules" ref="formRef">
         <el-form-item prop="phone">
           <el-input
@@ -16,7 +16,7 @@
           <el-input
             v-model="form.password"
             type="password"
-            placeholder="请输入密码"
+            placeholder="请输入密码（至少6位）"
             size="large"
             :prefix-icon="Lock"
             show-password
@@ -31,6 +31,15 @@
             size="large"
             :prefix-icon="Lock"
             show-password
+          />
+        </el-form-item>
+
+        <el-form-item prop="nickname">
+          <el-input
+            v-model="form.nickname"
+            placeholder="请输入昵称（可选）"
+            size="large"
+            :prefix-icon="User"
           />
         </el-form-item>
 
@@ -58,7 +67,7 @@
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { Iphone, Lock } from '@element-plus/icons-vue'
+import { Iphone, Lock, User } from '@element-plus/icons-vue'
 import { userRegister } from '@/api/user'
 
 const router = useRouter()
@@ -68,14 +77,16 @@ const loading = ref(false)
 const form = reactive({
   phone: '',
   password: '',
-  confirmPassword: ''
+  confirmPassword: '',
+  nickname: ''
 })
 
-const validatePass2 = (rule, value, callback) => {
+// 自定义确认密码验证规则
+const validateConfirmPassword = (rule, value, callback) => {
   if (value === '') {
-    callback(new Error('请再次输入密码'))
+    callback(new Error('请确认密码'))
   } else if (value !== form.password) {
-    callback(new Error('两次输入密码不一致!'))
+    callback(new Error('两次输入的密码不一致'))
   } else {
     callback()
   }
@@ -92,7 +103,10 @@ const rules = {
   ],
   confirmPassword: [
     { required: true, message: '请确认密码', trigger: 'blur' },
-    { validator: validatePass2, trigger: 'blur' }
+    { validator: validateConfirmPassword, trigger: 'blur' }
+  ],
+  nickname: [
+    { max: 20, message: '昵称不能超过20个字符', trigger: 'blur' }
   ]
 }
 
@@ -101,14 +115,31 @@ const handleRegister = async () => {
     await formRef.value.validate()
     loading.value = true
     
-    const { confirmPassword, ...registerData } = form
-    await userRegister(registerData)
+    // 准备注册数据（不包含确认密码字段）
+    const registerData = {
+      phone: form.phone,
+      password: form.password,
+      nickname: form.nickname || undefined
+    }
     
-    ElMessage.success('注册成功！请登录')
-    router.push('/login')
+    const response = await userRegister(registerData)
+    
+    if (response.code === 200) {
+      ElMessage.success('注册成功！')
+      // 跳转到登录页面
+      setTimeout(() => {
+        router.push('/login')
+      }, 1500)
+    } else {
+      ElMessage.error(response.message || '注册失败')
+    }
+    
   } catch (error) {
+    console.error('注册失败:', error)
     if (error.response) {
-      ElMessage.error(error.response.data.message || '注册失败')
+      ElMessage.error(error.response.data?.message || '注册失败')
+    } else {
+      ElMessage.error('网络错误，请稍后重试')
     }
   } finally {
     loading.value = false

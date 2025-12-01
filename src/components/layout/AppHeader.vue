@@ -59,11 +59,22 @@
           <el-dropdown>
             <span class="user-avatar">
               <el-avatar :size="32" :src="userAvatar" />
+              <span class="user-name">{{ userNickname }}</span>
             </span>
             <template #dropdown>
               <el-dropdown-menu>
-                <el-dropdown-item @click="goToProfile">个人中心</el-dropdown-item>
-                <el-dropdown-item @click="handleLogout">退出登录</el-dropdown-item>
+                <el-dropdown-item @click="goToProfile">
+                  <el-icon><User /></el-icon>
+                  个人中心
+                </el-dropdown-item>
+                <el-dropdown-item @click="goToSettings">
+                  <el-icon><Setting /></el-icon>
+                  账户设置
+                </el-dropdown-item>
+                <el-dropdown-item divided @click="handleLogout">
+                  <el-icon><SwitchButton /></el-icon>
+                  退出登录
+                </el-dropdown-item>
               </el-dropdown-menu>
             </template>
           </el-dropdown>
@@ -78,10 +89,10 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElDropdown, ElDropdownMenu, ElDropdownItem, ElAvatar, ElInput, ElButton } from 'element-plus'
-import { Search, Plus, Edit, FolderOpened } from '@element-plus/icons-vue'
+import { Search, Plus, Edit, FolderOpened, User, Setting, SwitchButton } from '@element-plus/icons-vue'
 
 const router = useRouter()
 
@@ -97,14 +108,17 @@ const checkLoginStatus = () => {
   
   isLoggedIn.value = !!token
   
-  if (userInfo) {
+  if (userInfo && token) {
     try {
       const user = JSON.parse(userInfo)
-      userNickname.value = user.nickname || '用户'
+      userNickname.value = user.nickname || user.phone || '用户'
       userAvatar.value = user.avatar || ''
     } catch (e) {
       console.error('解析用户信息失败:', e)
     }
+  } else {
+    userNickname.value = ''
+    userAvatar.value = ''
   }
 }
 
@@ -115,29 +129,42 @@ const handleSearch = () => {
     return
   }
   
-  router.push({
-    path: '/search',
-    query: {
-      keyword: searchKeyword.value.trim()
-    }
-  })
-  
+  // 如果搜索页面不存在，可以先跳转到推荐页并显示提示
+  ElMessage.info(`搜索: ${searchKeyword.value.trim()}`)
   searchKeyword.value = ''
 }
 
 // 跳转到发布分享
 const goToCreateShare = () => {
-  router.push('/share/create')
+  if (!isLoggedIn.value) {
+    ElMessage.warning('请先登录')
+    router.push('/login')
+    return
+  }
+  // ElMessage.info('发布分享功能开发中')
+  router.push('/create-share')
 }
 
 // 跳转到分享管理
 const goToShareManagement = () => {
-  router.push('/share/management')
+  if (!isLoggedIn.value) {
+    ElMessage.warning('请先登录')
+    router.push('/login')
+    return
+  }
+  // ElMessage.info('分享管理功能开发中')
+  router.push('/manage-share')
 }
 
 // 跳转到个人中心
 const goToProfile = () => {
-  ElMessage.info('个人中心功能开发中...')
+  router.push('/user')
+}
+
+// 跳转到设置
+const goToSettings = () => {
+  ElMessage.info('账户设置功能开发中')
+  // router.push('/user/settings')
 }
 
 // 退出登录
@@ -151,18 +178,32 @@ const handleLogout = () => {
   router.push('/login')
 }
 
-// 监听存储变化
-const handleStorageChange = () => {
+// 监听路由变化，更新登录状态
+watch(() => router.currentRoute.value, () => {
+  checkLoginStatus()
+})
+
+// 监听存储变化（跨标签页同步）
+const handleStorageChange = (event) => {
+  if (event.key === 'token' || event.key === 'userInfo') {
+    checkLoginStatus()
+  }
+}
+
+// 自定义事件监听（同标签页内）
+const handleCustomStorageChange = () => {
   checkLoginStatus()
 }
 
 onMounted(() => {
   checkLoginStatus()
   window.addEventListener('storage', handleStorageChange)
+  window.addEventListener('loginStatusChange', handleCustomStorageChange)
 })
 
 onUnmounted(() => {
   window.removeEventListener('storage', handleStorageChange)
+  window.removeEventListener('loginStatusChange', handleCustomStorageChange)
 })
 </script>
 
@@ -315,13 +356,19 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   cursor: pointer;
-  padding: 4px;
-  border-radius: 50%;
+  padding: 4px 8px;
+  border-radius: 20px;
   transition: background-color 0.3s;
+  gap: 8px;
 }
 
 .user-avatar:hover {
   background-color: rgba(255,255,255,0.1);
+}
+
+.user-name {
+  font-size: 14px;
+  color: white;
 }
 
 /* 登录注册链接 */
@@ -397,6 +444,10 @@ onUnmounted(() => {
   
   .share-text {
     font-size: 11px;
+  }
+  
+  .user-name {
+    display: none;
   }
 }
 </style>
