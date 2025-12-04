@@ -68,7 +68,7 @@ import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Iphone, Lock, User } from '@element-plus/icons-vue'
-import { userRegister } from '@/api/user'
+import { authRegister } from '@/api/auth'
 
 const router = useRouter()
 const formRef = ref()
@@ -122,7 +122,7 @@ const handleRegister = async () => {
       nickname: form.nickname || undefined
     }
     
-    const response = await userRegister(registerData)
+    const response = await authRegister(registerData)
     
     if (response.code === 200) {
       ElMessage.success('注册成功！')

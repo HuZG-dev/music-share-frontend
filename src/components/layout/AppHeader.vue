@@ -163,8 +163,8 @@ const goToProfile = () => {
 
 // 跳转到设置
 const goToSettings = () => {
-  ElMessage.info('账户设置功能开发中')
-  // router.push('/user/settings')
+  // ElMessage.info('账户设置功能开发中')
+  router.push('/user/settings')
 }
 
 // 退出登录

@@ -8,6 +8,7 @@ import Care from '@/views/Care.vue'
 import UserProfile from '@/views/UserProfile.vue'
 import CreateShare from '@/views/CreateShare.vue'
 import ManageShare from '@/views/ManageShare.vue'
+import Settings from '@/views/Settings.vue'
 
 const routes = [
   {
@@ -61,6 +62,11 @@ const routes = [
     name: 'manage-share',
     component: ManageShare,
     mata: { requiresAuth: true }
+  },
+  {
+    path: '/user/settings',
+    name: 'settings',
+    component: Settings
   }
 ]
 

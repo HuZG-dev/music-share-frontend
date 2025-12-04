@@ -86,7 +86,8 @@ import { ref, reactive, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Iphone, Lock } from '@element-plus/icons-vue'
-import { userLogin } from '@/api/user'
+// import { userLogin } from '@/api/user'
+import { authLogin } from '@/api/auth'
 
 const router = useRouter()
 const formRef = ref()
@@ -132,7 +133,7 @@ const handleLogin = async () => {
     await formRef.value.validate()
     loading.value = true
     
-    const response = await userLogin(form)
+    const response = await authLogin(form)
     
     if (response.code === 200) {
       const loginData = response.data
