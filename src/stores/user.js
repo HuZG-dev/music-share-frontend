@@ -1,45 +1,41 @@
-// src/stores/user.js
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
-import { getUserInfo } from '@/api/user'
+import { ref, computed } from 'vue'
 
 export const useUserStore = defineStore('user', () => {
-  const userInfo = ref(null)
   const token = ref(localStorage.getItem('token') || '')
+  const userInfo = ref(JSON.parse(localStorage.getItem('userInfo') || '{}'))
 
-  const setUserInfo = (info) => {
-    userInfo.value = info
+  const isLoggedIn = computed(() => !!token.value)
+  const userName = computed(() => userInfo.value.nickname)
+  const userAvatar = computed(() => userInfo.value.avatar)
+
+  const login = (userData, userToken) => {
+    token.value = userToken
+    userInfo.value = userData
+    localStorage.setItem('token', userToken)
+    localStorage.setItem('userInfo', JSON.stringify(userData))
+    
+    // 触发自定义事件通知其他组件
+    window.dispatchEvent(new Event('loginStatusChange'))
   }
 
-  const setToken = (newToken) => {
-    token.value = newToken
-    localStorage.setItem('token', newToken)
-  }
-
-  const clearUserInfo = () => {
-    userInfo.value = null
+  const logout = () => {
     token.value = ''
+    userInfo.value = {}
     localStorage.removeItem('token')
     localStorage.removeItem('userInfo')
-  }
-
-  const fetchUserInfo = async () => {
-    try {
-      const response = await getUserInfo()
-      userInfo.value = response.data
-      localStorage.setItem('userInfo', JSON.stringify(response.data))
-    } catch (error) {
-      clearUserInfo()
-      throw error
-    }
+    
+    // 触发自定义事件通知其他组件
+    window.dispatchEvent(new Event('loginStatusChange'))
   }
 
   return {
-    userInfo,
     token,
-    setUserInfo,
-    setToken,
-    clearUserInfo,
-    fetchUserInfo
+    userInfo,
+    isLoggedIn,
+    userName,
+    userAvatar,
+    login,
+    logout
   }
 })

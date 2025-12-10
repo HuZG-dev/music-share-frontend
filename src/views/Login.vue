@@ -88,12 +88,14 @@ import { ElMessage } from 'element-plus'
 import { Iphone, Lock } from '@element-plus/icons-vue'
 // import { userLogin } from '@/api/user'
 import { authLogin } from '@/api/auth'
+import { useUserStore } from '@/stores/user'
+import { storeToRefs } from 'pinia'
 
 const router = useRouter()
 const formRef = ref()
 const loading = ref(false)
-const isLoggedIn = ref(false)
-const userInfo = ref({})
+const userStore = useUserStore()
+const { isLoggedIn, userInfo } = storeToRefs(userStore)
 
 const form = reactive({
   phone: '',
@@ -113,18 +115,7 @@ const rules = {
 
 // 检查登录状态
 const checkLoginStatus = () => {
-  const token = localStorage.getItem('token')
-  const storedUserInfo = localStorage.getItem('userInfo')
-  
-  isLoggedIn.value = !!token
-  
-  if (storedUserInfo && token) {
-    try {
-      userInfo.value = JSON.parse(storedUserInfo)
-    } catch (e) {
-      console.error('解析用户信息失败:', e)
-    }
-  }
+  // 状态由store管理，无需手动检查
 }
 
 // 登录处理
@@ -134,27 +125,30 @@ const handleLogin = async () => {
     loading.value = true
     
     const response = await authLogin(form)
+    console.log('登录响应:', response)
     
     if (response.code === 200) {
-      const loginData = response.data
-      
-      // 保存token
-      localStorage.setItem('token', loginData.token)
-      
-      // 保存用户信息
-      userInfo.value = {
-        id: loginData.userInfo.id,
-        nickname: loginData.userInfo.nickname,
-        phone: loginData.userInfo.phone,
-        avatar: loginData.userInfo.avatar || ''
+      const token = response.data?.token || ''
+      const userData = response.data?.userInfo || response.data || {}
+
+      if (!token) {
+        ElMessage.error('登录响应缺少令牌，请联系管理员')
+        return
       }
-      localStorage.setItem('userInfo', JSON.stringify(userInfo.value))
       
-      isLoggedIn.value = true
+      // 保存到 store
+      userStore.login({
+        id: userData.id,
+        nickname: userData.nickname || userData.username || '用户',
+        phone: userData.phone || form.phone,
+        avatar: userData.avatar || ''
+      }, token)
+      
       ElMessage.success('登录成功！')
       
       // 跳转到首页
       router.push('/')
+      
     } else {
       ElMessage.error(response.message || '登录失败')
     }
@@ -163,6 +157,8 @@ const handleLogin = async () => {
     console.error('登录失败:', error)
     if (error.response) {
       ElMessage.error(error.response.data?.message || '登录失败')
+    } else if (error.message) {
+      ElMessage.error(error.message)
     } else {
       ElMessage.error('网络错误，请稍后重试')
     }
@@ -173,10 +169,7 @@ const handleLogin = async () => {
 
 // 退出登录
 const handleLogout = () => {
-  localStorage.removeItem('token')
-  localStorage.removeItem('userInfo')
-  isLoggedIn.value = false
-  userInfo.value = {}
+  userStore.logout()
   ElMessage.success('已退出登录')
   
   // 刷新页面以重置状态
@@ -190,11 +183,11 @@ const goToHome = () => {
 
 // 监听存储变化
 const handleStorageChange = () => {
-  checkLoginStatus()
+  // 状态由store管理，无需手动处理
 }
 
 onMounted(() => {
-  checkLoginStatus()
+  // 状态由store管理，无需手动检查
   window.addEventListener('storage', handleStorageChange)
 })
 

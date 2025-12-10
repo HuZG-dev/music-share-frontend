@@ -93,33 +93,31 @@ import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElDropdown, ElDropdownMenu, ElDropdownItem, ElAvatar, ElInput, ElButton } from 'element-plus'
 import { Search, Plus, Edit, FolderOpened, User, Setting, SwitchButton } from '@element-plus/icons-vue'
+import { useUserStore } from '@/stores/user'
+import { storeToRefs } from 'pinia'
 
 const router = useRouter()
+const userStore = useUserStore()
+const { isLoggedIn, userInfo } = storeToRefs(userStore)
 
-const isLoggedIn = ref(false)
 const userNickname = ref('')
 const userAvatar = ref('')
 const searchKeyword = ref('')
 
-// 检查登录状态
-const checkLoginStatus = () => {
-  const token = localStorage.getItem('token')
-  const userInfo = localStorage.getItem('userInfo')
-  
-  isLoggedIn.value = !!token
-  
-  if (userInfo && token) {
-    try {
-      const user = JSON.parse(userInfo)
-      userNickname.value = user.nickname || user.phone || '用户'
-      userAvatar.value = user.avatar || ''
-    } catch (e) {
-      console.error('解析用户信息失败:', e)
-    }
+// 更新用户信息显示
+const updateUserInfo = () => {
+  if (isLoggedIn.value && userInfo.value) {
+    userNickname.value = userInfo.value.nickname || userInfo.value.phone || '用户'
+    userAvatar.value = userInfo.value.avatar || ''
   } else {
     userNickname.value = ''
     userAvatar.value = ''
   }
+}
+
+// 检查登录状态
+const checkLoginStatus = () => {
+  updateUserInfo()
 }
 
 // 搜索处理
@@ -169,17 +167,18 @@ const goToSettings = () => {
 
 // 退出登录
 const handleLogout = () => {
-  localStorage.removeItem('token')
-  localStorage.removeItem('userInfo')
-  isLoggedIn.value = false
-  userNickname.value = ''
-  userAvatar.value = ''
+  userStore.logout()
   ElMessage.success('已退出登录')
   router.push('/login')
 }
 
 // 监听路由变化，更新登录状态
 watch(() => router.currentRoute.value, () => {
+  checkLoginStatus()
+})
+
+// 监听用户状态变化
+watch(isLoggedIn, () => {
   checkLoginStatus()
 })
 
