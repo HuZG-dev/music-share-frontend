@@ -10,7 +10,7 @@
                 <h3>{{ item.title }}</h3>
                 <p>{{ item.description }}</p>
                 <el-button type="primary" size="large" @click="handleBannerClick(item)">
-                  {{ item.buttonText }}
+                  {{ item.buttonText || '立即查看' }}
                 </el-button>
               </div>
             </div>
@@ -164,117 +164,137 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { 
-  VideoPlay, View 
+import {
+  VideoPlay, View
 } from '@element-plus/icons-vue'
+import { getBanners } from '../api/banner'
+import { getRecommendedPlaylists, getHotSongs } from '../api/netease'
 
 const router = useRouter()
 
-// 模拟数据
-const banners = ref([
-  {
-    id: 1,
-    image: 'https://via.placeholder.com/1200x320/667eea/ffffff',
-    title: '音乐分享大赛',
-    description: '分享你最喜欢的音乐，赢取丰厚奖品',
-    buttonText: '立即参与',
-    type: 'activity'
-  },
-  {
-    id: 2,
-    image: 'https://via.placeholder.com/1200x320/764ba2/ffffff',
-    title: '新歌首发专区',
-    description: '最新发布的原创音乐作品，抢先试听',
-    buttonText: '立即试听',
-    type: 'share'
-  },
-  {
-    id: 3,
-    image: 'https://via.placeholder.com/1200x320/f093fb/ffffff',
-    title: '经典老歌回顾',
-    description: '那些年我们一起听过的经典旋律',
-    buttonText: '重温经典',
-    type: 'share'
-  },
-  {
-    id: 4,
-    image: 'https://via.placeholder.com/1200x320/4ecdc4/ffffff',
-    title: '原创音乐人计划',
-    description: '支持原创音乐人，发现好声音',
-    buttonText: '了解更多',
-    type: 'activity'
-  }
-])
+// 轮播图数据
+const banners = ref([])
 
+// 获取轮播图数据
+const fetchBanners = async () => {
+  try {
+    console.log('开始获取轮播图数据...')
+    const response = await getBanners()
+    console.log('API返回的完整响应:', response)
+    
+    // 将相对路径转换为完整URL
+    const bannersWithFullUrl = (response || []).map(banner => ({
+      ...banner,
+      image: `http://localhost:8080${banner.image}`
+    }))
+    
+    banners.value = bannersWithFullUrl
+    console.log('最终轮播图数据:', banners.value)
+  } catch (error) {
+    console.error('获取轮播图数据失败:', error)
+    console.error('错误详情:', error.response || error.message)
+  }
+}
+
+// 推荐分享数据
 const recommendedShares = ref([
   {
     id: 1,
-    musicName: '晴天',
-    artist: '周杰伦',
-    cover: 'https://via.placeholder.com/280x160/667eea/ffffff',
-    userName: '音乐爱好者',
-    userAvatar: 'https://via.placeholder.com/40x40',
-    playCount: 123456,
-    duration: '04:30'
+    musicName: '精选华语流行',
+    artist: '华语乐坛精选',
+    cover: '/src/assets/default-music-cover.png',
+    userName: '音乐精选官',
+    userAvatar: '/src/assets/default-avatar.png',
+    playCount: 1234567,
+    duration: '未知时长'
   },
   {
     id: 2,
-    musicName: '起风了',
-    artist: '买辣椒也用券',
-    cover: 'https://via.placeholder.com/280x160/764ba2/ffffff',
-    userName: '风中的歌者',
-    userAvatar: 'https://via.placeholder.com/40x40',
-    playCount: 98765,
-    duration: '03:45'
+    musicName: '经典英文老歌',
+    artist: '欧美经典',
+    cover: '/src/assets/default-music-cover.png',
+    userName: '老歌回忆录',
+    userAvatar: '/src/assets/default-avatar.png',
+    playCount: 891234,
+    duration: '未知时长'
   },
   {
     id: 3,
-    musicName: '海底',
-    artist: '一支榴莲',
-    cover: 'https://via.placeholder.com/280x160/f093fb/ffffff',
-    userName: '深海音乐',
-    userAvatar: 'https://via.placeholder.com/40x40',
-    playCount: 87654,
-    duration: '03:20'
+    musicName: '热门电音派对',
+    artist: '电音狂欢',
+    cover: '/src/assets/default-music-cover.png',
+    userName: '电音小助手',
+    userAvatar: '/src/assets/default-avatar.png',
+    playCount: 567890,
+    duration: '未知时长'
   },
   {
     id: 4,
-    musicName: '光年之外',
-    artist: 'G.E.M.邓紫棋',
-    cover: 'https://via.placeholder.com/280x160/4ecdc4/ffffff',
-    userName: '星空观察员',
-    userAvatar: 'https://via.placeholder.com/40x40',
-    playCount: 156789,
-    duration: '04:15'
+    musicName: '治愈系轻音乐',
+    artist: '放松身心',
+    cover: '/src/assets/default-music-cover.png',
+    userName: '治愈系音乐',
+    userAvatar: '/src/assets/default-avatar.png',
+    playCount: 456789,
+    duration: '未知时长'
   },
   {
     id: 5,
-    musicName: '星辰大海',
-    artist: '黄霄雲',
-    cover: 'https://via.placeholder.com/280x160/ff6b6b/ffffff',
-    userName: '追梦人',
-    userAvatar: 'https://via.placeholder.com/40x40',
-    playCount: 134567,
-    duration: '03:55'
+    musicName: '摇滚经典合集',
+    artist: '摇滚传奇',
+    cover: '/src/assets/default-music-cover.png',
+    userName: '摇滚不死',
+    userAvatar: '/src/assets/default-avatar.png',
+    playCount: 345678,
+    duration: '未知时长'
   },
   {
     id: 6,
-    musicName: '少年',
-    artist: '梦然',
-    cover: 'https://via.placeholder.com/280x160/45b7d1/ffffff',
-    userName: '青春纪念册',
-    userAvatar: 'https://via.placeholder.com/40x40',
-    playCount: 167890,
-    duration: '04:10'
+    musicName: '中国风精选',
+    artist: '国韵飘香',
+    cover: '/src/assets/default-music-cover.png',
+    userName: '中国风音乐',
+    userAvatar: '/src/assets/default-avatar.png',
+    playCount: 234567,
+    duration: '未知时长'
   }
 ])
+
+// 获取推荐分享数据
+const fetchRecommendedShares = async () => {
+  try {
+    const response = await getRecommendedPlaylists(6)
+    if (response && response.result) {
+      // 将网易云音乐API返回的数据转换为我们需要的格式
+      recommendedShares.value = response.result.map(item => ({
+        id: item.id,
+        musicName: item.name,
+        artist: item.copywriter || '未知艺术家',
+        cover: item.picUrl || '/src/assets/default-music-cover.png',
+        userName: item.creator ? item.creator.nickname : '未知用户',
+        userAvatar: item.creator ? item.creator.avatarUrl : '/src/assets/default-avatar.png',
+        playCount: item.playCount || 0,
+        duration: '未知时长'
+      }))
+    }
+  } catch (error) {
+    console.error('获取推荐分享失败，使用模拟数据:', error)
+    // 使用模拟数据，已经在上面定义
+  }
+}
+
+// 活动封面图片辅助函数
+const activityCover = (fileName) => {
+  // 返回活动封面图片的完整URL
+  return `http://localhost:8080/uploads/activities/${fileName}`
+}
 
 const hotActivities = ref([
   {
     id: 1,
     title: '周末音乐派对',
     description: '线上音乐交流活动，与音乐爱好者一起分享',
-    cover: 'https://via.placeholder.com/280x160/ff6b6b/ffffff',
+    cover: activityCover('音乐分享大赛.png'),
     tag: '进行中',
     tagType: 'active',
     time: '本周六 20:00',
@@ -284,7 +304,7 @@ const hotActivities = ref([
     id: 2,
     title: '原创音乐征集',
     description: '征集优秀原创音乐作品，展示你的才华',
-    cover: 'https://via.placeholder.com/280x160/4ecdc4/ffffff',
+    cover: activityCover('原创音乐人计划.png'),
     tag: '火热',
     tagType: 'hot',
     time: '长期有效',
@@ -294,7 +314,7 @@ const hotActivities = ref([
     id: 3,
     title: '音乐知识竞赛',
     description: '测试你的音乐知识，赢取音乐周边',
-    cover: 'https://via.placeholder.com/280x160/45b7d1/ffffff',
+    cover: activityCover('经典老歌回顾.png'),
     tag: '新活动',
     tagType: 'new',
     time: '下月开启',
@@ -302,13 +322,58 @@ const hotActivities = ref([
   }
 ])
 
+// 热门分享数据
 const hotShares = ref([
-  { id: 1, musicName: '孤勇者', artist: '陈奕迅', playCount: 456789 },
-  { id: 2, musicName: '光年之外', artist: 'G.E.M.邓紫棋', playCount: 389765 },
-  { id: 3, musicName: '稻香', artist: '周杰伦', playCount: 345678 },
-  { id: 4, musicName: '少年', artist: '梦然', playCount: 298765 },
-  { id: 5, musicName: '星辰大海', artist: '黄霄雲', playCount: 267890 }
+  {
+    id: 1001,
+    musicName: '晴天',
+    artist: '周杰伦',
+    playCount: 9876543
+  },
+  {
+    id: 1002,
+    musicName: '起风了',
+    artist: '买辣椒也用券',
+    playCount: 8765432
+  },
+  {
+    id: 1003,
+    musicName: '孤勇者',
+    artist: '陈奕迅',
+    playCount: 7654321
+  },
+  {
+    id: 1004,
+    musicName: '光年之外',
+    artist: '邓紫棋',
+    playCount: 6543210
+  },
+  {
+    id: 1005,
+    musicName: '海阔天空',
+    artist: 'Beyond',
+    playCount: 5432109
+  }
 ])
+
+// 获取热门分享数据
+const fetchHotShares = async () => {
+  try {
+    const response = await getHotSongs(5)
+    if (response && response.data) {
+      // 将网易云音乐API返回的数据转换为我们需要的格式
+      hotShares.value = response.data.map(item => ({
+        id: item.id,
+        musicName: item.name,
+        artist: item.ar && item.ar.length > 0 ? item.ar.map(artist => artist.name).join('/') : '未知艺术家',
+        playCount: item.popularity || 0
+      }))
+    }
+  } catch (error) {
+    console.error('获取热门分享失败，使用模拟数据:', error)
+    // 使用模拟数据，已经在上面定义
+  }
+}
 
 const categories = ref([
   { id: 1, name: '流行' },
@@ -325,7 +390,7 @@ const latestShares = ref([
     musicName: '夜曲',
     artist: '周杰伦',
     userName: '音乐达人',
-    userAvatar: 'https://via.placeholder.com/40x40',
+    userAvatar: '/src/assets/default-avatar.png',
     time: '2分钟前'
   },
   {
@@ -333,7 +398,7 @@ const latestShares = ref([
     musicName: '七里香',
     artist: '周杰伦',
     userName: '旋律猎人',
-    userAvatar: 'https://via.placeholder.com/40x40',
+    userAvatar: '/src/assets/default-avatar.png',
     time: '5分钟前'
   },
   {
@@ -341,7 +406,7 @@ const latestShares = ref([
     musicName: '青花瓷',
     artist: '周杰伦',
     userName: '中国风',
-    userAvatar: 'https://via.placeholder.com/40x40',
+    userAvatar: '/src/assets/default-avatar.png',
     time: '10分钟前'
   },
   {
@@ -349,7 +414,7 @@ const latestShares = ref([
     musicName: '简单爱',
     artist: '周杰伦',
     userName: '爱情故事',
-    userAvatar: 'https://via.placeholder.com/40x40',
+    userAvatar: '/src/assets/default-avatar.png',
     time: '15分钟前'
   }
 ])
@@ -360,11 +425,8 @@ const playMusic = (share) => {
 }
 
 const handleBannerClick = (banner) => {
-  if (banner.type === 'activity') {
-    router.push('/activities')
-  } else if (banner.type === 'share') {
-    router.push('/share')
-  }
+  // 由于所有轮播图都是活动相关的，直接跳转到活动页面
+  router.push('/activities')
 }
 
 const handleActivityClick = (activity) => {
@@ -390,7 +452,12 @@ const filterByCategory = (categoryId) => {
 }
 
 onMounted(() => {
-  // 可以在这里添加初始化逻辑
+  // 获取轮播图数据
+  fetchBanners()
+  // 获取推荐分享数据
+  fetchRecommendedShares()
+  // 获取热门分享数据
+  fetchHotShares()
 })
 </script>
 

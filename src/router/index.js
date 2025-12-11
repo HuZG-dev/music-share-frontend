@@ -44,7 +44,7 @@ const routes = [
     path: '/care',
     name: 'care',
     component: Care,
-    meta: { requiresAuth: true } // 修正拼写错误：requiresAutn → requiresAuth
+    meta: { requiresAuth: true }
   },
   {
     path: '/user',
@@ -61,7 +61,7 @@ const routes = [
     path: '/manage-share',
     name: 'manage-share',
     component: ManageShare,
-    mata: { requiresAuth: true }
+    meta: { requiresAuth: true }
   },
   {
     path: '/user/settings',

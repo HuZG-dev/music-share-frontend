@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { VideoPlay, Star, Share } from '@element-plus/icons-vue'
+import { VideoPlay, Star, Share, ArrowLeft } from '@element-plus/icons-vue'
 
 const router = useRouter()
 
