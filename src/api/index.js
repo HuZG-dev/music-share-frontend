@@ -28,6 +28,16 @@ export const fetchHomeData = async () => {
   }
 };
 
+export const fetchAllShares = async () => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/shares`);
+    return await response.json();
+  } catch (error) {
+    console.error('获取所有分享失败:', error);
+    throw error;
+  }
+};
+
 export const deleteImage = async (filename, type) => {
   try {
     const response = await fetch(`${API_BASE_URL}/api/file/delete/${type}/${filename}`, {

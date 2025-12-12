@@ -28,6 +28,9 @@
           <section class="section">
             <div class="section-header">
               <h2 class="section-title">推荐分享</h2>
+              <el-button type="text" class="more-button" @click="viewMoreRecommendations">
+                更多推荐 <el-icon><ArrowRight /></el-icon>
+              </el-button>
             </div>
             <div class="share-grid">
               <div 
@@ -135,26 +138,7 @@
             </div>
           </div>
 
-          <!-- 最新分享 -->
-          <div class="latest-card">
-            <div class="card-header">
-              <h4>最新分享</h4>
-            </div>
-            <div class="latest-list">
-              <div 
-                v-for="share in latestShares" 
-                :key="share.id"
-                class="latest-item"
-                @click="playMusic(share)"
-              >
-                <el-avatar :size="32" :src="share.userAvatar" />
-                <div class="latest-info">
-                  <h6 class="line-clamp-1">{{ share.musicName }}</h6>
-                  <p class="line-clamp-1">{{ share.userName }} · {{ share.time }}</p>
-                </div>
-              </div>
-            </div>
-          </div>
+
         </div>
       </div>
     </div>
@@ -165,10 +149,11 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import {
-  VideoPlay, View
+  VideoPlay, View, ArrowRight
 } from '@element-plus/icons-vue'
 import { getBanners } from '../api/banner'
 import { getRecommendedPlaylists, getHotSongs } from '../api/netease'
+import { fetchAllShares } from '../api/index'
 
 const router = useRouter()
 
@@ -263,17 +248,19 @@ const recommendedShares = ref([
 // 获取推荐分享数据
 const fetchRecommendedShares = async () => {
   try {
-    const response = await getRecommendedPlaylists(6)
-    if (response && response.result) {
-      // 将网易云音乐API返回的数据转换为我们需要的格式
-      recommendedShares.value = response.result.map(item => ({
+    const response = await fetchAllShares()
+    if (response && Array.isArray(response)) {
+      // 确保只使用前6个数据
+      const limitedResponse = response.slice(0, 6)
+      // 将后端返回的数据转换为我们需要的格式
+      recommendedShares.value = limitedResponse.map((item) => ({
         id: item.id,
-        musicName: item.name,
-        artist: item.copywriter || '未知艺术家',
-        cover: item.picUrl || '/src/assets/default-music-cover.png',
-        userName: item.creator ? item.creator.nickname : '未知用户',
-        userAvatar: item.creator ? item.creator.avatarUrl : '/src/assets/default-avatar.png',
-        playCount: item.playCount || 0,
+        musicName: item.musicTitle,
+        artist: item.musicArtist,
+        cover: item.musicCover || '/src/assets/default-music-cover.png',
+        userName: item.user?.username || '未知用户',
+        userAvatar: item.user?.avatar || '/src/assets/default-avatar.png',
+        playCount: item.likedCount || 0,
         duration: '未知时长'
       }))
     }
@@ -353,20 +340,52 @@ const hotShares = ref([
     musicName: '海阔天空',
     artist: 'Beyond',
     playCount: 5432109
+  },
+  {
+    id: 1006,
+    musicName: '夜曲',
+    artist: '周杰伦',
+    playCount: 4321098
+  },
+  {
+    id: 1007,
+    musicName: '平凡之路',
+    artist: '朴树',
+    playCount: 3210987
+  },
+  {
+    id: 1008,
+    musicName: '小幸运',
+    artist: '田馥甄',
+    playCount: 2109876
+  },
+  {
+    id: 1009,
+    musicName: '岁月神偷',
+    artist: '金玟岐',
+    playCount: 1098765
+  },
+  {
+    id: 1010,
+    musicName: '红色高跟鞋',
+    artist: '蔡健雅',
+    playCount: 987654
   }
 ])
 
 // 获取热门分享数据
 const fetchHotShares = async () => {
   try {
-    const response = await getHotSongs(5)
-    if (response && response.data) {
+    const response = await getHotSongs(10)
+    if (response && Array.isArray(response)) {
+      // 确保只使用前10个数据
+      const limitedResponse = response.slice(0, 10)
       // 将网易云音乐API返回的数据转换为我们需要的格式
-      hotShares.value = response.data.map(item => ({
-        id: item.id,
+      hotShares.value = limitedResponse.map((item, index) => ({
+        id: index + 1001,
         musicName: item.name,
-        artist: item.ar && item.ar.length > 0 ? item.ar.map(artist => artist.name).join('/') : '未知艺术家',
-        playCount: item.popularity || 0
+        artist: item.artist || '未知艺术家',
+        playCount: Math.floor(Math.random() * 10000000) + 5000000
       }))
     }
   } catch (error) {
@@ -384,40 +403,7 @@ const categories = ref([
   { id: 6, name: '爵士' }
 ])
 
-const latestShares = ref([
-  {
-    id: 1,
-    musicName: '夜曲',
-    artist: '周杰伦',
-    userName: '音乐达人',
-    userAvatar: '/src/assets/default-avatar.png',
-    time: '2分钟前'
-  },
-  {
-    id: 2,
-    musicName: '七里香',
-    artist: '周杰伦',
-    userName: '旋律猎人',
-    userAvatar: '/src/assets/default-avatar.png',
-    time: '5分钟前'
-  },
-  {
-    id: 3,
-    musicName: '青花瓷',
-    artist: '周杰伦',
-    userName: '中国风',
-    userAvatar: '/src/assets/default-avatar.png',
-    time: '10分钟前'
-  },
-  {
-    id: 4,
-    musicName: '简单爱',
-    artist: '周杰伦',
-    userName: '爱情故事',
-    userAvatar: '/src/assets/default-avatar.png',
-    time: '15分钟前'
-  }
-])
+
 
 // 方法
 const playMusic = (share) => {
@@ -449,6 +435,12 @@ const formatCount = (count) => {
 
 const filterByCategory = (categoryId) => {
   console.log('筛选分类:', categoryId)
+}
+
+const viewMoreRecommendations = () => {
+  console.log('查看更多推荐')
+  // 这里可以跳转到更多推荐页面
+  router.push('/recommendations')
 }
 
 onMounted(() => {
@@ -536,6 +528,20 @@ onMounted(() => {
 
 .section-header {
   margin-bottom: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.more-button {
+  font-size: 14px;
+  color: #42b983;
+  padding: 0;
+  height: auto;
+}
+
+.more-button:hover {
+  color: #369a70;
 }
 
 .section-title {
@@ -759,7 +765,7 @@ onMounted(() => {
   gap: 20px;
 }
 
-.ranking-card, .category-card, .latest-card {
+.ranking-card, .category-card {
   background: white;
   border-radius: 8px;
   padding: 16px;
@@ -874,43 +880,7 @@ onMounted(() => {
   font-size: 14px;
 }
 
-/* 最新分享列表 */
-.latest-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
 
-.latest-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 8px;
-  cursor: pointer;
-  transition: background-color 0.2s;
-  border-radius: 4px;
-}
-
-.latest-item:hover {
-  background-color: #f8f9fa;
-}
-
-.latest-info {
-  flex: 1;
-  min-width: 0; /* 防止flex项目溢出 */
-}
-
-.latest-info h6 {
-  margin: 0 0 4px 0;
-  font-size: 14px;
-  color: #333;
-}
-
-.latest-info p {
-  margin: 0;
-  font-size: 12px;
-  color: #666;
-}
 
 /* 响应式设计 */
 @media (max-width: 1024px) {

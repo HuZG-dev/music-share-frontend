@@ -9,6 +9,8 @@ import UserProfile from '@/views/UserProfile.vue'
 import CreateShare from '@/views/CreateShare.vue'
 import ManageShare from '@/views/ManageShare.vue'
 import Settings from '@/views/Settings.vue'
+import ShareDetail from '@/views/ShareDetail.vue'
+import Recommendations from '@/views/Recommendations.vue'
 
 const routes = [
   {
@@ -29,6 +31,11 @@ const routes = [
     path: '/recommend',
     name: 'recommend',
     component: Recommend
+  },
+  {
+    path: '/recommendations',
+    name: 'recommendations',
+    component: Recommendations
   },
   {
     path: '/hot',
@@ -67,6 +74,11 @@ const routes = [
     path: '/user/settings',
     name: 'settings',
     component: Settings
+  },
+  {
+    path: '/share/:id',
+    name: 'share-detail',
+    component: ShareDetail
   }
 ]
 

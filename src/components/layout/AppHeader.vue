@@ -25,7 +25,9 @@
           @keyup.enter="handleSearch"
         >
           <template #append>
-            <el-button @click="handleSearch" :icon="Search" />
+            <el-button @click="handleSearch">
+              <el-icon><Search /></el-icon>
+            </el-button>
           </template>
         </el-input>
       </div>
