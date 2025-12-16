@@ -1,7 +1,7 @@
 <template>
   <div class="register-container">
     <div class="register-form">
-      <h2>注册音乐分享平台</h2>
+      <h2>注册拾音</h2>
       <el-form :model="form" :rules="rules" ref="formRef">
         <el-form-item prop="phone">
           <el-input

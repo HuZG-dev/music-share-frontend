@@ -15,23 +15,8 @@
         <p>{{ shareDetail.content }}</p>
       </div>
 
-      <!-- 分享音乐 -->
-      <el-card class="music-card">
-        <div class="music-info">
-          <div class="music-cover">
-            <img :src="shareDetail.music.cover" alt="音乐封面">
-          </div>
-          <div class="music-details">
-            <h4>{{ shareDetail.music.title }}</h4>
-            <p class="artist">{{ shareDetail.music.artist }}</p>
-            <p class="album">{{ shareDetail.music.album }}</p>
-          </div>
-          <el-button type="primary" class="play-button">
-            <el-icon><VideoPlay /></el-icon>
-            播放
-          </el-button>
-        </div>
-      </el-card>
+      <!-- 分享音乐播放器 -->
+      <Player :music-info="shareDetail.music" :autoplay="false" />
 
       <!-- 互动按钮 -->
       <div class="interaction-buttons">
@@ -101,29 +86,32 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
-import { VideoPlay, Star, Collection, Share } from '@element-plus/icons-vue'
+import { Star, Collection, Share } from '@element-plus/icons-vue'
+import { fetchShareDetail } from '../api/index'
+import { getMusicDetail, getMusicUrl } from '../api/netease'
+import Player from '../components/Player.vue'
 
 const route = useRoute()
 const shareId = ref(route.params.id)
 
-// 模拟分享详情数据
+// 分享详情数据
 const shareDetail = ref({
-  id: '1',
-  userName: '音乐达人',
-  userAvatar: '/src/assets/default-avatar.png',
-  shareTime: '2小时前',
-  content: '这首歌真的太好听了，分享给大家！每次听到这首歌都会想起美好的回忆，希望你们也能喜欢。',
+  id: '',
+  userName: '',
+  userAvatar: 'https://via.placeholder.com/32x32/cccccc/ffffff?text=用户',
+  shareTime: '',
+  content: '',
   liked: false,
-  likedCount: 42,
+  likedCount: 0,
   collected: false,
-  collectedCount: 18,
-  sharedCount: 12,
+  collectedCount: 0,
+  sharedCount: 0,
   music: {
-    id: '1001',
-    title: '晴天',
-    artist: '周杰伦',
-    album: '叶惠美',
-    cover: '/src/assets/default-music-cover.png',
+    id: '',
+    title: '',
+    artist: '',
+    album: '',
+    cover: 'https://via.placeholder.com/120x120/666666/ffffff?text=音乐封面',
     url: '#'
   }
 })
@@ -197,10 +185,114 @@ const submitComment = () => {
   }
 }
 
+// 获取分享详情
+const getShareDetail = async () => {
+  try {
+    console.log('===== 开始执行getShareDetail方法 =====')
+    console.log('当前shareId:', shareId.value)
+    
+    if (shareId.value) {
+      const shareData = await fetchShareDetail(shareId.value)
+      console.log('获取到的分享数据:', shareData)
+      
+      // 检查API响应结构
+      const shareDataResponse = shareData.data || shareData
+      console.log('处理后的分享数据:', shareDataResponse)
+      
+      // 获取音乐详情
+      let musicCover = 'https://via.placeholder.com/120x120/666666/ffffff?text=音乐封面'
+      let musicAlbum = ''
+      let musicUrl = '#'
+      
+      if (shareDataResponse.musicId) {
+        console.log('开始获取音乐详情，musicId:', shareDataResponse.musicId)
+        
+        try {
+          // 获取音乐详情和封面
+          const musicDetail = await getMusicDetail(shareDataResponse.musicId)
+          console.log('获取到的音乐详情:', musicDetail)
+          
+          if (musicDetail) {
+            musicCover = musicDetail.pic || musicCover
+            musicAlbum = musicDetail.album || ''
+          }
+          
+          // 获取音乐播放URL
+          console.log('尝试获取音乐播放URL, musicId:', shareDataResponse.musicId)
+          const musicUrlData = await getMusicUrl(shareDataResponse.musicId)
+          console.log('getMusicUrl返回数据:', musicUrlData)
+          
+          if (musicUrlData && musicUrlData.url) {
+            musicUrl = musicUrlData.url
+            console.log('成功获取到播放URL:', musicUrl)
+          } else {
+            console.warn('未获取到有效的播放URL，使用fallback')
+            musicUrl = 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3'
+          }
+        } catch (error) {
+          console.error('获取音乐信息失败:', error)
+          // 失败时使用fallback
+          musicUrl = 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3'
+        }
+      }
+      
+      // 格式化分享时间
+      const shareTime = new Date(shareDataResponse.createdAt)
+      const now = new Date()
+      const diffMs = now - shareTime
+      const diffMins = Math.floor(diffMs / 60000)
+      const diffHours = Math.floor(diffMins / 60)
+      const diffDays = Math.floor(diffHours / 24)
+      
+      let formattedTime = ''
+      if (diffDays > 0) {
+        formattedTime = `${diffDays}天前`
+      } else if (diffHours > 0) {
+        formattedTime = `${diffHours}小时前`
+      } else if (diffMins > 0) {
+        formattedTime = `${diffMins}分钟前`
+      } else {
+        formattedTime = '刚刚'
+      }
+      
+      // 更新分享详情数据
+      console.log('准备更新shareDetail数据，音乐URL:', musicUrl)
+      
+      shareDetail.value = {
+        id: shareDataResponse.id,
+        userName: shareDataResponse.user?.nickname || '未知用户',
+        userAvatar: shareDataResponse.user?.avatar || 'https://via.placeholder.com/32x32/cccccc/ffffff?text=用户',
+        shareTime: formattedTime,
+        content: shareDataResponse.content,
+        liked: false, // 默认未喜欢
+        likedCount: shareDataResponse.likedCount || 0,
+        collected: false, // 默认未收藏
+        collectedCount: shareDataResponse.collectedCount || 0,
+        sharedCount: shareDataResponse.sharedCount || 0,
+        music: {
+          id: shareDataResponse.musicId,
+          title: shareDataResponse.musicTitle,
+          artist: shareDataResponse.musicArtist,
+          album: musicAlbum,
+          cover: musicCover,
+          url: musicUrl  // 使用获取到的真实URL
+        }
+      }
+      
+      console.log('shareDetail数据更新完成:', shareDetail.value)
+      console.log('更新后的音乐URL:', shareDetail.value.music.url)
+    }
+  } catch (error) {
+    console.error('===== 获取分享详情失败 =====')
+    console.error('错误对象:', error)
+    console.error('错误信息:', error.message)
+    console.error('错误堆栈:', error.stack)
+  }
+}
+
 // 页面加载时获取分享详情
 onMounted(() => {
-  // 这里可以添加获取真实数据的逻辑
-  console.log('获取分享详情，ID:', shareId.value)
+  getShareDetail()
 })
 </script>
 

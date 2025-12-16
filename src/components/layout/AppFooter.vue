@@ -1,7 +1,7 @@
 <template>
   <footer class="app-footer">
     <div class="footer-content">
-      <p>&copy; 2025 音乐分享平台 - 用音乐连接你我</p>
+      <p>&copy; 2025 拾音 - 用音乐连接你我</p>
     </div>
   </footer>
 </template>

@@ -33,36 +33,16 @@
               </el-button>
             </div>
             <div class="share-grid">
-              <div 
+              <ShareCard
                 v-for="share in recommendedShares" 
-                :key="share.id" 
-                class="share-card"
-                @click="playMusic(share)"
-              >
-                <div class="card-cover">
-                  <img :src="share.cover" :alt="share.musicName" />
-                  <div class="cover-overlay">
-                    <div class="play-button">
-                      <el-icon size="24"><VideoPlay /></el-icon>
-                    </div>
-                  </div>
-                  <div class="cover-info">
-                    <span class="play-count">
-                      <el-icon><View /></el-icon>
-                      {{ formatCount(share.playCount) }}
-                    </span>
-                    <span class="duration">{{ share.duration }}</span>
-                  </div>
-                </div>
-                <div class="card-content">
-                  <h4 class="music-title line-clamp-1">{{ share.musicName }}</h4>
-                  <p class="artist-name line-clamp-1">{{ share.artist }}</p>
-                  <div class="user-info">
-                    <el-avatar :size="24" :src="share.userAvatar" />
-                    <span class="user-name line-clamp-1">{{ share.userName }}</span>
-                  </div>
-                </div>
-              </div>
+                :key="share.id"
+                :share="share"
+                :on-click="handleShareCardClick"
+                :cover-height="'160px'"
+                :play-button-size="'48px'"
+                :play-icon-size="24"
+                :content-padding="'12px'"
+              />
             </div>
           </section>
 
@@ -94,6 +74,11 @@
                 </div>
               </div>
             </div>
+          </section>
+          
+          <!-- 音乐播放器 -->
+          <section class="section player-section" v-if="currentMusic.url">
+            <Player :musicInfo="currentMusic" :autoplay="true" />
           </section>
         </div>
 
@@ -152,10 +137,20 @@ import {
   VideoPlay, View, ArrowRight
 } from '@element-plus/icons-vue'
 import { getBanners } from '../api/banner'
-import { getRecommendedPlaylists, getHotSongs } from '../api/netease'
+import { getRecommendedPlaylists, getHotSongs, getMusicDetail, getMusicUrl } from '../api/netease'
 import { fetchAllShares } from '../api/index'
+import ShareCard from '../components/ShareCard.vue'
+import Player from '../components/Player.vue'
 
 const router = useRouter()
+
+// 当前播放的音乐信息
+const currentMusic = ref({
+  title: '',
+  artist: '',
+  cover: '',
+  url: ''
+})
 
 // 轮播图数据
 const banners = ref([])
@@ -187,83 +182,136 @@ const recommendedShares = ref([
     id: 1,
     musicName: '精选华语流行',
     artist: '华语乐坛精选',
-    cover: '/src/assets/default-music-cover.png',
+    cover: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Crect fill='%2342b983' width='200' height='200'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-size='80' fill='white'%3E🎵%3C/text%3E%3C/svg%3E",
     userName: '音乐精选官',
     userAvatar: '/src/assets/default-avatar.png',
     playCount: 1234567,
-    duration: '未知时长'
+    duration: '未知时长',
+    musicId: '1842728629',
+    url: ''
   },
   {
     id: 2,
     musicName: '经典英文老歌',
     artist: '欧美经典',
-    cover: '/src/assets/default-music-cover.png',
+    cover: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Crect fill='%23764ba2' width='200' height='200'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-size='80' fill='white'%3E🎵%3C/text%3E%3C/svg%3E",
     userName: '老歌回忆录',
     userAvatar: '/src/assets/default-avatar.png',
     playCount: 891234,
-    duration: '未知时长'
+    duration: '未知时长',
+    musicId: '1838868183',
+    url: ''
   },
   {
     id: 3,
     musicName: '热门电音派对',
     artist: '电音狂欢',
-    cover: '/src/assets/default-music-cover.png',
+    cover: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Crect fill='%23f093fb' width='200' height='200'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-size='80' fill='white'%3E🎵%3C/text%3E%3C/svg%3E",
     userName: '电音小助手',
     userAvatar: '/src/assets/default-avatar.png',
     playCount: 567890,
-    duration: '未知时长'
+    duration: '未知时长',
+    musicId: '1839237849',
+    url: ''
   },
   {
     id: 4,
     musicName: '治愈系轻音乐',
     artist: '放松身心',
-    cover: '/src/assets/default-music-cover.png',
+    cover: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Crect fill='%234ecdc4' width='200' height='200'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-size='80' fill='white'%3E🎵%3C/text%3E%3C/svg%3E",
     userName: '治愈系音乐',
     userAvatar: '/src/assets/default-avatar.png',
     playCount: 456789,
-    duration: '未知时长'
+    duration: '未知时长',
+    musicId: '1837654283',
+    url: ''
   },
   {
     id: 5,
     musicName: '摇滚经典合集',
     artist: '摇滚传奇',
-    cover: '/src/assets/default-music-cover.png',
+    cover: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Crect fill='%23f7b801' width='200' height='200'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-size='80' fill='white'%3E🎵%3C/text%3E%3C/svg%3E",
     userName: '摇滚不死',
     userAvatar: '/src/assets/default-avatar.png',
     playCount: 345678,
-    duration: '未知时长'
+    duration: '未知时长',
+    musicId: '1836723845',
+    url: ''
   },
   {
     id: 6,
     musicName: '中国风精选',
     artist: '国韵飘香',
-    cover: '/src/assets/default-music-cover.png',
+    cover: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Crect fill='%239775fa' width='200' height='200'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-size='80' fill='white'%3E🎵%3C/text%3E%3C/svg%3E",
     userName: '中国风音乐',
     userAvatar: '/src/assets/default-avatar.png',
     playCount: 234567,
-    duration: '未知时长'
+    duration: '未知时长',
+    musicId: '1835428937',
+    url: ''
   }
 ])
 
 // 获取推荐分享数据
 const fetchRecommendedShares = async () => {
   try {
+    console.log('开始获取推荐分享数据...')
     const response = await fetchAllShares()
-    if (response && Array.isArray(response)) {
-      // 确保只使用前6个数据
-      const limitedResponse = response.slice(0, 6)
-      // 将后端返回的数据转换为我们需要的格式
-      recommendedShares.value = limitedResponse.map((item) => ({
-        id: item.id,
-        musicName: item.musicTitle,
-        artist: item.musicArtist,
-        cover: item.musicCover || '/src/assets/default-music-cover.png',
-        userName: item.user?.username || '未知用户',
-        userAvatar: item.user?.avatar || '/src/assets/default-avatar.png',
-        playCount: item.likedCount || 0,
-        duration: '未知时长'
-      }))
+    console.log('后端返回的原始数据:', response)
+    
+    // 如果数据为空或数据不足，保持使用默认的模拟数据
+    if (!response || !Array.isArray(response) || response.length === 0) {
+      console.log('数据库为空，使用默认模拟数据')
+      return
     }
+    
+    // 确保只使用前6个数据
+    const limitedResponse = response.slice(0, 6)
+    console.log('处理的分享数据:', limitedResponse)
+    
+    // 使用 Promise.all 批量获取音乐封面
+    const sharesWithCovers = await Promise.all(
+      limitedResponse.map(async (item) => {
+        let coverUrl = item.musicCover || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Crect fill='%2342b983' width='200' height='200'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-size='80' fill='white'%3E🎵%3C/text%3E%3C/svg%3E"
+        console.log(`处理分享 ${item.id}: ${item.musicTitle} - ${item.musicArtist}, musicId: ${item.musicId}`)
+        
+        // 如果有 musicId，通过网易云 API 获取封面
+        if (item.musicId) {
+          try {
+            console.log(`调用网易云 API 获取音乐 ${item.musicId} 详情...`)
+            const musicDetail = await getMusicDetail(String(item.musicId))
+            console.log(`网易云 API 返回结果:`, musicDetail)
+            
+            if (musicDetail && musicDetail.pic) {
+              coverUrl = musicDetail.pic
+              console.log(`获取到封面 URL: ${coverUrl}`)
+            } else {
+              console.log(`未获取到有效的封面 URL`)
+            }
+          } catch (error) {
+            console.error(`获取音乐 ${item.musicId} 封面失败:`, error)
+            // 失败时使用默认封面
+          }
+        } else {
+          console.log(`该分享没有 musicId`)
+        }
+        
+        return {
+          id: item.id,
+          musicName: item.musicTitle,
+          artist: item.musicArtist,
+          cover: coverUrl,
+          userName: item.user?.nickname || '未知用户',
+          userAvatar: item.user?.avatar || '/src/assets/default-avatar.png',
+          playCount: item.likedCount || 0,
+          duration: '未知时长',
+          musicId: item.musicId
+        }
+      })
+    )
+    
+    console.log('最终处理后的分享数据:', sharesWithCovers)
+    recommendedShares.value = sharesWithCovers
   } catch (error) {
     console.error('获取推荐分享失败，使用模拟数据:', error)
     // 使用模拟数据，已经在上面定义
@@ -406,8 +454,39 @@ const categories = ref([
 
 
 // 方法
-const playMusic = (share) => {
+const playMusic = async (share) => {
   console.log('播放音乐:', share.musicName)
+  console.log('分享数据:', share)
+  
+  try {
+    // 获取音乐播放URL
+    console.log('获取音乐URL, musicId:', share.musicId)
+    
+    if (!share.musicId) {
+      console.error('播放失败：没有musicId')
+      return
+    }
+    
+    const musicData = await getMusicUrl(share.musicId)
+    console.log('获取到的音乐数据:', musicData)
+    
+    if (!musicData || !musicData.url) {
+      console.error('播放失败：未获取到有效的音乐URL')
+      return
+    }
+    
+    // 更新当前播放的音乐信息
+    currentMusic.value = {
+      title: share.musicName,
+      artist: share.artist,
+      cover: share.cover,
+      url: musicData.url
+    }
+    
+    console.log('当前播放音乐:', currentMusic.value)
+  } catch (error) {
+    console.error('播放音乐失败:', error)
+  }
 }
 
 const handleBannerClick = (banner) => {
@@ -441,6 +520,17 @@ const viewMoreRecommendations = () => {
   console.log('查看更多推荐')
   // 这里可以跳转到更多推荐页面
   router.push('/recommendations')
+}
+
+// 处理分享卡片点击事件，跳转到详情页
+const handleShareCardClick = async (share) => {
+  console.log('点击分享卡片:', share.id)
+  
+  // 播放音乐
+  await playMusic(share)
+  
+  // 跳转到分享详情页
+  router.push(`/share/${share.id}`)
 }
 
 onMounted(() => {
@@ -575,105 +665,17 @@ onMounted(() => {
   gap: 20px;
 }
 
-.share-card {
-  border-radius: 8px;
-  overflow: hidden;
-  background: white;
-  cursor: pointer;
-  transition: transform 0.3s, box-shadow 0.3s;
-}
-
-.share-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 20px rgba(0,0,0,0.12);
-}
-
-.card-cover {
-  position: relative;
-  width: 100%;
-  height: 160px;
-  overflow: hidden;
-}
-
-.card-cover img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.cover-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0,0,0,0.4);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  opacity: 0;
-  transition: opacity 0.3s;
-}
-
-.share-card:hover .cover-overlay {
-  opacity: 1;
-}
-
-.play-button {
-  width: 48px;
-  height: 48px;
-  background: rgba(255,255,255,0.9);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #42b983;
-}
-
-.cover-info {
-  position: absolute;
-  bottom: 8px;
-  left: 8px;
-  right: 8px;
-  display: flex;
-  justify-content: space-between;
-  color: white;
-  font-size: 12px;
-}
-
-.cover-info span {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.card-content {
-  padding: 12px;
-}
-
-.music-title {
-  margin: 0 0 8px 0;
+/* 推荐页分享卡片样式覆盖 */
+.share-grid .music-title {
   font-size: 14px;
-  font-weight: 600;
-  color: #333;
-  line-height: 1.4;
 }
 
-.artist-name {
-  margin: 0 0 12px 0;
+.share-grid .artist-name {
   font-size: 12px;
-  color: #666;
 }
 
-.user-info {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.user-name {
+.share-grid .user-name {
   font-size: 12px;
-  color: #666;
 }
 
 /* 活动网格 */

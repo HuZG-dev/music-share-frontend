@@ -9,6 +9,9 @@
           <el-button type="primary" :icon="Plus" @click="goToCreateShare">
             发布新分享
           </el-button>
+          <el-button :type="checkingShares ? 'info' : 'warning'" :icon="checkingShares ? 'Loading' : 'Warning'" :disabled="checkingShares || shares.length === 0" @click="checkAllSharesAvailability">
+            {{ checkingShares ? `检查中(${checkProgress}%)` : '检查无效分享' }}
+          </el-button>
         </div>
       </div>
     </div>
@@ -341,26 +344,10 @@
 <script setup>
 import { ref, reactive, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import {
-  Plus,
-  Search,
-  Refresh,
-  Document,
-  View,
-  Star,
-  ChatDotRound,
-  VideoPlay,
-  Clock,
-  Warning,
-  Share,
-  Edit,
-  More,
-  Setting,
-  Delete,
-  User,
-  Lock
-} from '@element-plus/icons-vue'
+import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
+import { fetchUserShares, deleteShare } from '@/api'
+import { Plus, Search, Refresh, Document, View, Star, ChatDotRound, VideoPlay, Clock, Warning, Share, Edit, More, Setting, Delete, User, Lock, Loading } from '@element-plus/icons-vue'
+import { isMusicAvailable } from '@/api/netease'
 
 const router = useRouter()
 
@@ -394,6 +381,11 @@ const editingShare = ref(null)
 const selectedPrivacy = ref('public')
 const currentShareId = ref(null)
 
+// 检查音乐可获取性相关状态
+const checkingShares = ref(false)
+const unavailableShares = ref([])
+const checkProgress = ref(0)
+
 // 计算属性
 const filteredShares = computed(() => {
   return shares.value.filter(share => {
@@ -410,75 +402,149 @@ const filteredShares = computed(() => {
 })
 
 // 方法
+// 检查所有分享的音乐可获取性
+const checkAllSharesAvailability = async () => {
+  if (shares.value.length === 0) {
+    ElMessage.warning('没有分享可以检查')
+    return
+  }
+
+  const loading = ElLoading.service({
+    lock: true,
+    text: '正在检查音乐可获取性...',
+    background: 'rgba(0, 0, 0, 0.7)'
+  })
+
+  checkingShares.value = true
+  unavailableShares.value = []
+  checkProgress.value = 0
+
+  try {
+    const sharesToCheck = [...shares.value]
+    const totalShares = sharesToCheck.length
+
+    for (let i = 0; i < totalShares; i++) {
+      const share = sharesToCheck[i]
+      checkProgress.value = Math.round(((i + 1) / totalShares) * 100)
+
+      // 检查音乐是否可获取
+      const isAvailable = await isMusicAvailable(share.musicInfo.id)
+
+      // 如果音乐不可获取，添加到待删除列表
+      if (!isAvailable) {
+        unavailableShares.value.push(share)
+      }
+
+      // 延迟一下，避免请求过于频繁
+      if (i < totalShares - 1) {
+        await new Promise(resolve => setTimeout(resolve, 500))
+      }
+    }
+
+    loading.close()
+    checkingShares.value = false
+
+    if (unavailableShares.value.length > 0) {
+      ElMessage.success(`检查完成，发现 ${unavailableShares.value.length} 个分享的音乐无法获取`)
+      
+      // 询问用户是否删除这些分享
+      await handleDeleteUnavailableShares()
+    } else {
+      ElMessage.success('检查完成，所有分享的音乐都可以正常获取')
+    }
+  } catch (error) {
+    console.error('检查音乐可获取性失败:', error)
+    loading.close()
+    checkingShares.value = false
+    ElMessage.error('检查音乐可获取性失败')
+  }
+}
+
+// 删除所有无法获取音乐的分享
+const handleDeleteUnavailableShares = async () => {
+  if (unavailableShares.value.length === 0) {
+    return
+  }
+
+  try {
+    await ElMessageBox.confirm(
+      `发现 ${unavailableShares.value.length} 个分享的音乐无法获取，确定要删除这些分享吗？`,
+      '确认删除',
+      {
+        confirmButtonText: '确定删除',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    )
+
+    const loading = ElLoading.service({
+      lock: true,
+      text: '正在删除无法获取的分享...',
+      background: 'rgba(0, 0, 0, 0.7)'
+    })
+
+    // 批量删除无法获取的分享
+    for (const share of unavailableShares.value) {
+      await deleteShare(share.id)
+      
+      // 从本地分享列表中移除
+      const index = shares.value.findIndex(s => s.id === share.id)
+      if (index !== -1) {
+        shares.value.splice(index, 1)
+      }
+    }
+
+    loading.close()
+    unavailableShares.value = []
+    updateStats()
+    ElMessage.success(`成功删除 ${unavailableShares.value.length} 个无法获取音乐的分享`)
+  } catch (error) {
+    // 用户取消删除或删除失败
+    if (error !== 'cancel') {
+      console.error('删除无法获取的分享失败:', error)
+      ElMessage.error('删除失败')
+    }
+  }
+}
+
+// 加载分享
 const loadShares = async () => {
   try {
-    // 模拟API调用
-    shares.value = [
-      {
-        id: 1,
-        musicInfo: {
-          id: 'qq_123456',
-          title: '晴天',
-          artist: '周杰伦',
-          album: '叶惠美',
-          cover: 'https://via.placeholder.com/80x80/667eea/ffffff',
-          duration: 269,
-          source: 'qqmusic'
-        },
-        content: '这首歌让我想起了大学时光，每次听到都感觉很温暖。',
-        tags: ['怀旧', '校园', '经典'],
-        privacy: 'public',
-        status: 'normal',
-        likes: 123,
-        comments: 45,
-        shares: 23,
-        createdAt: '2024-01-15T10:30:00Z'
+    // 调用真实API获取用户分享
+    const userShares = await fetchUserShares()
+    
+    // 转换数据格式以适配前端
+    shares.value = userShares.map(share => ({
+      id: share.id,
+      musicInfo: {
+        id: share.musicId,
+        title: share.musicTitle,
+        artist: share.musicArtist,
+        album: share.musicAlbum,
+        cover: share.musicCover,
+        duration: 0, // 后端可能没有提供，设置默认值
+        source: 'qqmusic' // 默认来源
       },
-      {
-        id: 2,
-        musicInfo: {
-          id: 'qq_123457',
-          title: '起风了',
-          artist: '买辣椒也用券',
-          album: '起风了',
-          cover: 'https://via.placeholder.com/80x80/764ba2/ffffff',
-          duration: 285,
-          source: 'qqmusic'
-        },
-        content: '最近单曲循环的一首歌，旋律很美。',
-        tags: ['流行', '单曲循环'],
-        privacy: 'friends',
-        status: 'normal',
-        likes: 89,
-        comments: 23,
-        shares: 12,
-        createdAt: '2024-01-14T15:20:00Z'
-      },
-      {
-        id: 3,
-        musicInfo: {
-          id: 'qq_123458',
-          title: '海底',
-          artist: '一支榴莲',
-          album: '海底',
-          cover: 'https://via.placeholder.com/80x80/f093fb/ffffff',
-          duration: 320,
-          source: 'qqmusic'
-        },
-        content: '很有深度的一首歌，歌词写得很棒。',
-        tags: ['治愈', '深夜'],
-        privacy: 'private',
-        status: 'deleted',
-        likes: 67,
-        comments: 15,
-        shares: 8,
-        createdAt: '2024-01-10T08:15:00Z'
-      }
-    ]
+      content: share.content,
+      tags: share.tags ? share.tags.split(',') : [],
+      privacy: share.privacy || 'public',
+      status: 'normal', // 后端可能没有提供状态字段，默认为正常
+      likes: share.likes || 0,
+      comments: share.comments || 0,
+      shares: share.shares || 0,
+      createdAt: share.createdAt
+    }))
     
     // 更新统计
     updateStats()
+    
+    // 加载完成后自动检查音乐可获取性
+    // 注释掉自动检查，用户可以手动触发检查
+    // setTimeout(() => {
+    //   checkAllSharesAvailability()
+    // }, 1000)
   } catch (error) {
+    console.error('加载分享失败:', error)
     ElMessage.error('加载分享失败')
   }
 }

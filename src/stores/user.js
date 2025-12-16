@@ -29,6 +29,15 @@ export const useUserStore = defineStore('user', () => {
     window.dispatchEvent(new Event('loginStatusChange'))
   }
 
+  // 更新用户信息
+  const updateUserInfo = (newInfo) => {
+    userInfo.value = { ...userInfo.value, ...newInfo }
+    localStorage.setItem('userInfo', JSON.stringify(userInfo.value))
+    
+    // 触发自定义事件通知其他组件
+    window.dispatchEvent(new Event('loginStatusChange'))
+  }
+
   return {
     token,
     userInfo,
@@ -36,6 +45,7 @@ export const useUserStore = defineStore('user', () => {
     userName,
     userAvatar,
     login,
-    logout
+    logout,
+    updateUserInfo
   }
 })

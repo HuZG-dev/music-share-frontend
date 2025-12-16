@@ -4,7 +4,6 @@
     <div class="page-header">
       <div class="header-content">
         <h1 class="page-title">账户设置</h1>
-        <p class="page-subtitle">管理你的账户信息和隐私设置</p>
       </div>
     </div>
 
@@ -26,14 +25,6 @@
               <el-menu-item index="security">
                 <el-icon><Lock /></el-icon>
                 <span>安全设置</span>
-              </el-menu-item>
-              <el-menu-item index="privacy">
-                <el-icon><View /></el-icon>
-                <span>隐私设置</span>
-              </el-menu-item>
-              <el-menu-item index="notification">
-                <el-icon><Bell /></el-icon>
-                <span>消息通知</span>
               </el-menu-item>
               <el-menu-item index="binding">
                 <el-icon><Link /></el-icon>
@@ -84,7 +75,6 @@
                     maxlength="20"
                     show-word-limit
                   />
-                  <div class="setting-tip">昵称将在社区中显示给其他用户</div>
                 </div>
               </div>
 
@@ -104,47 +94,9 @@
                 </div>
               </div>
 
-              <!-- 性别 -->
-              <div class="setting-item">
-                <div class="setting-label">性别</div>
-                <div class="setting-control">
-                  <el-radio-group v-model="profileForm.gender">
-                    <el-radio label="male">男</el-radio>
-                    <el-radio label="female">女</el-radio>
-                    <el-radio label="unknown">保密</el-radio>
-                  </el-radio-group>
-                </div>
-              </div>
-
-              <!-- 生日 -->
-              <div class="setting-item">
-                <div class="setting-label">生日</div>
-                <div class="setting-control">
-                  <el-date-picker
-                    v-model="profileForm.birthday"
-                    type="date"
-                    placeholder="选择生日"
-                    value-format="YYYY-MM-DD"
-                  />
-                </div>
-              </div>
-
-              <!-- 地区 -->
-              <div class="setting-item">
-                <div class="setting-label">地区</div>
-                <div class="setting-control">
-                  <el-cascader
-                    v-model="profileForm.region"
-                    :options="regionOptions"
-                    placeholder="请选择地区"
-                  />
-                </div>
-              </div>
-
               <!-- 保存按钮 -->
               <div class="setting-actions">
                 <el-button type="primary" @click="saveProfile">保存修改</el-button>
-                <el-button @click="resetProfile">重置</el-button>
               </div>
             </div>
           </el-card>
@@ -179,190 +131,6 @@
                 <el-button @click="showPhoneBindingDialog">
                   {{ userInfo.phone ? '更换手机' : '绑定手机' }}
                 </el-button>
-              </div>
-
-              <!-- 登录设备 -->
-              <div class="security-item">
-                <div class="security-info">
-                  <div class="security-title">登录设备管理</div>
-                  <div class="security-desc">管理已登录的设备，可远程退出</div>
-                </div>
-                <el-button @click="showDeviceManagement">管理设备</el-button>
-              </div>
-
-              <!-- 登录记录 -->
-              <div class="security-item">
-                <div class="security-info">
-                  <div class="security-title">登录记录</div>
-                  <div class="security-desc">查看最近的登录活动</div>
-                </div>
-                <el-button @click="showLoginHistory">查看记录</el-button>
-              </div>
-            </div>
-          </el-card>
-
-          <!-- 隐私设置 -->
-          <el-card v-if="activeTab === 'privacy'" class="content-card">
-            <template #header>
-              <div class="card-header">
-                <el-icon><View /></el-icon>
-                <span>隐私设置</span>
-              </div>
-            </template>
-
-            <div class="privacy-section">
-              <!-- 个人资料可见性 -->
-              <div class="privacy-item">
-                <div class="privacy-info">
-                  <div class="privacy-title">个人资料可见性</div>
-                  <div class="privacy-desc">谁可以看到你的个人资料</div>
-                </div>
-                <el-select v-model="privacyForm.profileVisibility">
-                  <el-option label="公开" value="public" />
-                  <el-option label="仅好友" value="friends" />
-                  <el-option label="私密" value="private" />
-                </el-select>
-              </div>
-
-              <!-- 分享可见性 -->
-              <div class="privacy-item">
-                <div class="privacy-info">
-                  <div class="privacy-title">默认分享可见性</div>
-                  <div class="privacy-desc">新分享的默认隐私设置</div>
-                </div>
-                <el-select v-model="privacyForm.defaultShareVisibility">
-                  <el-option label="公开" value="public" />
-                  <el-option label="仅好友" value="friends" />
-                  <el-option label="私密" value="private" />
-                </el-select>
-              </div>
-
-              <!-- 在线状态 -->
-              <div class="privacy-item">
-                <div class="privacy-info">
-                  <div class="privacy-title">在线状态显示</div>
-                  <div class="privacy-desc">是否向其他用户显示在线状态</div>
-                </div>
-                <el-switch v-model="privacyForm.showOnlineStatus" />
-              </div>
-
-              <!-- 播放记录 -->
-              <div class="privacy-item">
-                <div class="privacy-info">
-                  <div class="privacy-title">播放记录可见性</div>
-                  <div class="privacy-desc">谁可以看到你的播放记录</div>
-                </div>
-                <el-select v-model="privacyForm.playHistoryVisibility">
-                  <el-option label="公开" value="public" />
-                  <el-option label="仅好友" value="friends" />
-                  <el-option label="仅自己" value="private" />
-                </el-select>
-              </div>
-
-              <!-- 收藏可见性 -->
-              <div class="privacy-item">
-                <div class="privacy-info">
-                  <div class="privacy-title">收藏列表可见性</div>
-                  <div class="privacy-desc">谁可以看到你的收藏列表</div>
-                </div>
-                <el-select v-model="privacyForm.favoritesVisibility">
-                  <el-option label="公开" value="public" />
-                  <el-option label="仅好友" value="friends" />
-                  <el-option label="仅自己" value="private" />
-                </el-select>
-              </div>
-
-              <!-- 保存按钮 -->
-              <div class="privacy-actions">
-                <el-button type="primary" @click="savePrivacySettings">保存设置</el-button>
-              </div>
-            </div>
-          </el-card>
-
-          <!-- 消息通知 -->
-          <el-card v-if="activeTab === 'notification'" class="content-card">
-            <template #header>
-              <div class="card-header">
-                <el-icon><Bell /></el-icon>
-                <span>消息通知</span>
-              </div>
-            </template>
-
-            <div class="notification-section">
-              <!-- 系统通知 -->
-              <div class="notification-group">
-                <div class="group-title">系统通知</div>
-                <div class="notification-item">
-                  <div class="notification-info">
-                    <div class="notification-title">系统公告</div>
-                    <div class="notification-desc">重要更新和功能通知</div>
-                  </div>
-                  <el-switch v-model="notificationForm.systemAnnouncement" />
-                </div>
-                <div class="notification-item">
-                  <div class="notification-info">
-                    <div class="notification-title">安全提醒</div>
-                    <div class="notification-desc">账户安全相关通知</div>
-                  </div>
-                  <el-switch v-model="notificationForm.securityAlerts" />
-                </div>
-              </div>
-
-              <!-- 社交互动 -->
-              <div class="notification-group">
-                <div class="group-title">社交互动</div>
-                <div class="notification-item">
-                  <div class="notification-info">
-                    <div class="notification-title">新粉丝</div>
-                    <div class="notification-desc">有人关注了你</div>
-                  </div>
-                  <el-switch v-model="notificationForm.newFollowers" />
-                </div>
-                <div class="notification-item">
-                  <div class="notification-info">
-                    <div class="notification-title">点赞通知</div>
-                    <div class="notification-desc">有人点赞了你的分享</div>
-                  </div>
-                  <el-switch v-model="notificationForm.likeNotifications" />
-                </div>
-                <div class="notification-item">
-                  <div class="notification-info">
-                    <div class="notification-title">评论通知</div>
-                    <div class="notification-desc">有人评论了你的分享</div>
-                  </div>
-                  <el-switch v-model="notificationForm.commentNotifications" />
-                </div>
-                <div class="notification-item">
-                  <div class="notification-info">
-                    <div class="notification-title">@提及</div>
-                    <div class="notification-desc">有人在评论中@了你</div>
-                  </div>
-                  <el-switch v-model="notificationForm.mentionNotifications" />
-                </div>
-              </div>
-
-              <!-- 邮件通知 -->
-              <div class="notification-group">
-                <div class="group-title">邮件通知</div>
-                <div class="notification-item">
-                  <div class="notification-info">
-                    <div class="notification-title">邮件摘要</div>
-                    <div class="notification-desc">每周活动摘要邮件</div>
-                  </div>
-                  <el-switch v-model="notificationForm.emailDigest" />
-                </div>
-                <div class="notification-item">
-                  <div class="notification-info">
-                    <div class="notification-title">营销邮件</div>
-                    <div class="notification-desc">产品更新和活动信息</div>
-                  </div>
-                  <el-switch v-model="notificationForm.marketingEmails" />
-                </div>
-              </div>
-
-              <!-- 保存按钮 -->
-              <div class="notification-actions">
-                <el-button type="primary" @click="saveNotificationSettings">保存设置</el-button>
               </div>
             </div>
           </el-card>
@@ -502,8 +270,6 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   User,
   Lock,
-  View,
-  Bell,
   Link
 } from '@element-plus/icons-vue'
 
@@ -533,27 +299,6 @@ const profileForm = reactive({
   region: []
 })
 
-// 隐私设置表单
-const privacyForm = reactive({
-  profileVisibility: 'public',
-  defaultShareVisibility: 'public',
-  showOnlineStatus: true,
-  playHistoryVisibility: 'friends',
-  favoritesVisibility: 'friends'
-})
-
-// 通知设置表单
-const notificationForm = reactive({
-  systemAnnouncement: true,
-  securityAlerts: true,
-  newFollowers: true,
-  likeNotifications: true,
-  commentNotifications: true,
-  mentionNotifications: true,
-  emailDigest: false,
-  marketingEmails: false
-})
-
 // 账号绑定状态
 const bindings = reactive({
   qq: null,
@@ -569,26 +314,6 @@ const passwordForm = reactive({
   confirmPassword: ''
 })
 const passwordFormRef = ref()
-
-// 地区选项（简化版）
-const regionOptions = [
-  {
-    value: 'beijing',
-    label: '北京市',
-    children: [
-      { value: 'dongcheng', label: '东城区' },
-      { value: 'xicheng', label: '西城区' }
-    ]
-  },
-  {
-    value: 'shanghai',
-    label: '上海市',
-    children: [
-      { value: 'huangpu', label: '黄浦区' },
-      { value: 'xuhui', label: '徐汇区' }
-    ]
-  }
-]
 
 // 密码验证规则
 const passwordRules = {
@@ -650,16 +375,6 @@ const saveProfile = async () => {
   }
 }
 
-const resetProfile = () => {
-  Object.assign(profileForm, {
-    nickname: userInfo.value.nickname,
-    bio: userInfo.value.bio,
-    gender: userInfo.value.gender,
-    birthday: userInfo.value.birthday,
-    region: userInfo.value.region
-  })
-}
-
 const showChangePasswordDialog = () => {
   passwordForm.oldPassword = ''
   passwordForm.newPassword = ''
@@ -681,32 +396,6 @@ const changePassword = async () => {
 
 const showPhoneBindingDialog = () => {
   ElMessage.info('手机绑定功能开发中')
-}
-
-const showDeviceManagement = () => {
-  ElMessage.info('设备管理功能开发中')
-}
-
-const showLoginHistory = () => {
-  ElMessage.info('登录记录功能开发中')
-}
-
-const savePrivacySettings = async () => {
-  try {
-    // 调用API保存隐私设置
-    ElMessage.success('隐私设置已更新')
-  } catch (error) {
-    ElMessage.error('更新失败')
-  }
-}
-
-const saveNotificationSettings = async () => {
-  try {
-    // 调用API保存通知设置
-    ElMessage.success('通知设置已更新')
-  } catch (error) {
-    ElMessage.error('更新失败')
-  }
 }
 
 const handleQQBinding = async () => {
@@ -811,12 +500,6 @@ onMounted(() => {
   color: #333;
 }
 
-.page-subtitle {
-  margin: 0;
-  font-size: 16px;
-  color: #666;
-}
-
 /* 主要内容 */
 .main-content {
   max-width: 1200px;
@@ -888,12 +571,6 @@ onMounted(() => {
   min-width: 0;
 }
 
-.setting-tip {
-  font-size: 12px;
-  color: #999;
-  margin-top: 8px;
-}
-
 /* 头像上传 */
 .avatar-upload {
   display: flex;
@@ -936,74 +613,6 @@ onMounted(() => {
 .security-desc {
   font-size: 14px;
   color: #666;
-}
-
-/* 隐私设置 */
-.privacy-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px 0;
-  border-bottom: 1px solid #f0f0f0;
-}
-
-.privacy-item:last-child {
-  border-bottom: none;
-}
-
-.privacy-title {
-  font-weight: 500;
-  color: #333;
-  margin-bottom: 4px;
-}
-
-.privacy-desc {
-  font-size: 14px;
-  color: #666;
-}
-
-.privacy-actions {
-  margin-top: 24px;
-  padding-top: 20px;
-  border-top: 1px solid #f0f0f0;
-}
-
-/* 消息通知 */
-.notification-group {
-  margin-bottom: 32px;
-}
-
-.group-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: #333;
-  margin-bottom: 16px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid #f0f0f0;
-}
-
-.notification-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px 0;
-}
-
-.notification-title {
-  font-weight: 500;
-  color: #333;
-  margin-bottom: 4px;
-}
-
-.notification-desc {
-  font-size: 14px;
-  color: #666;
-}
-
-.notification-actions {
-  margin-top: 24px;
-  padding-top: 20px;
-  border-top: 1px solid #f0f0f0;
 }
 
 /* 账号绑定 */
@@ -1113,7 +722,6 @@ onMounted(() => {
   }
   
   .security-item,
-  .privacy-item,
   .binding-item,
   .account-deletion {
     flex-direction: column;
@@ -1122,7 +730,6 @@ onMounted(() => {
   }
   
   .security-item .el-button,
-  .privacy-item .el-select,
   .binding-item .el-button {
     align-self: flex-start;
   }

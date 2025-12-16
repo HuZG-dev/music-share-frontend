@@ -1,147 +1,318 @@
 <template>
   <div class="profile-container">
-    <!-- 头部背景 -->
+    <!-- 顶部用户信息区 -->
     <div class="profile-header">
-      <div class="header-bg"></div>
-      <div class="user-info">
-        <div class="avatar-section">
-          <div class="avatar" @click="editAvatar">
-            <img :src="userInfo.avatar || defaultAvatar" alt="头像">
-            <div class="avatar-edit">
-              <i class="el-icon-camera"></i>
+      <div class="user-info-section">
+        <!-- 头像 -->
+        <div class="avatar-container" @click="editAvatar">
+          <img :src="userInfo.avatar || defaultAvatar" alt="头像" class="user-avatar">
+        </div>
+        <!-- 用户基本信息 -->
+        <div class="user-details">
+          <h1 class="username">{{ userInfo.nickname || '用户' }}</h1>
+          <!-- 关注、粉丝、获赞 -->
+          <div class="stats">
+            <div class="stat-item">
+              <span class="stat-number">51</span>
+              <span class="stat-label">关注</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-number">66</span>
+              <span class="stat-label">粉丝</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-number">208</span>
+              <span class="stat-label">获赞</span>
             </div>
           </div>
-          <h2 class="username">{{ userInfo.nickname }}</h2>
-          <p class="phone">{{ userInfo.phone }}</p>
+          
+          <!-- 个性签名 -->
+          <div class="bio">{{ userInfo.bio || '暂无个性签名' }}</div>
         </div>
       </div>
     </div>
 
-    <!-- 主要内容 -->
-    <div class="profile-content">
-      <!-- 统计信息 -->
-      <div class="stats-section">
-        <el-row :gutter="20">
-          <el-col :xs="12" :sm="6">
-            <div class="stat-item">
-              <div class="stat-number">128</div>
-              <div class="stat-label">我的收藏</div>
-            </div>
-          </el-col>
-          <el-col :xs="12" :sm="6">
-            <div class="stat-item">
-              <div class="stat-number">64</div>
-              <div class="stat-label">我的分享</div>
-            </div>
-          </el-col>
-          <el-col :xs="12" :sm="6">
-            <div class="stat-item">
-              <div class="stat-number">1,024</div>
-              <div class="stat-label">获赞数</div>
-            </div>
-          </el-col>
-          <el-col :xs="12" :sm="6">
-            <div class="stat-item">
-              <div class="stat-number">28</div>
-              <div class="stat-label">关注</div>
-            </div>
-          </el-col>
-        </el-row>
+    <!-- 中间导航栏 -->
+    <div class="profile-nav">
+      <div 
+        class="nav-item" 
+        :class="{ active: currentNav === 'works' }" 
+        @click="switchNav('works')"
+      >
+        作品 <span class="nav-count">{{ shares.length }}</span>
       </div>
-
-      <!-- 功能菜单 -->
-      <div class="menu-section">
-        <el-card shadow="never">
-          <template #header>
-            <div class="card-header">
-              <span>账户设置</span>
-            </div>
-          </template>
-
-          <el-menu>
-            <el-menu-item @click="showEditDialog">
-              <i class="el-icon-user"></i>
-              <span>编辑资料</span>
-            </el-menu-item>
-            <el-menu-item @click="showSecurityDialog">
-              <i class="el-icon-lock"></i>
-              <span>安全设置</span>
-            </el-menu-item>
-            <el-menu-item @click="showPrivacyDialog">
-              <i class="el-icon-view"></i>
-              <span>隐私设置</span>
-            </el-menu-item>
-            <el-menu-item @click="showAboutDialog">
-              <i class="el-icon-info"></i>
-              <span>关于我们</span>
-            </el-menu-item>
-          </el-menu>
-        </el-card>
+      <div 
+        class="nav-item" 
+        :class="{ active: currentNav === 'likes' }" 
+        @click="switchNav('likes')"
+      >
+        喜欢 <i class="el-icon-lock"></i>
       </div>
+      <div 
+        class="nav-item" 
+        :class="{ active: currentNav === 'collections' }" 
+        @click="switchNav('collections')"
+      >
+        收藏 <i class="el-icon-lock"></i>
+      </div>
+      <div 
+        class="nav-item" 
+        :class="{ active: currentNav === 'history' }" 
+        @click="switchNav('history')"
+      >
+        观看历史 <i class="el-icon-lock"></i>
+      </div>
+    </div>
 
-      <!-- 快速操作 -->
-      <div class="action-section">
-        <el-row :gutter="20">
-          <el-col :xs="12" :sm="8">
-            <el-card class="action-card" shadow="hover" @click="goToMyFavorites">
-              <div class="action-content">
-                <i class="el-icon-star-off"></i>
-                <div class="action-text">我的收藏</div>
+    <!-- 作品列表 -->
+    <div class="works-container">
+      <!-- 作品内容 -->
+      <div v-if="currentNav === 'works'">
+        <div v-if="shares.length === 0" class="empty-works">
+          <i class="el-icon-folder-opened"></i>
+          <p>暂无作品</p>
+        </div>
+        
+        <!-- 分享列表 -->
+        <div v-else class="shares-grid">
+          <div v-for="share in shares" :key="share.id" class="share-card" @click="goToShareDetail(share.id)">
+            <!-- 音乐封面 -->
+            <div class="share-cover">
+              <img :src="share.musicInfo.cover" :alt="share.musicInfo.title" class="cover-image">
+              <div class="cover-overlay">
+                <i class="el-icon-video-play"></i>
               </div>
-            </el-card>
-          </el-col>
-          <el-col :xs="12" :sm="8">
-            <el-card class="action-card" shadow="hover" @click="goToMyShares">
-              <div class="action-content">
-                <i class="el-icon-share"></i>
-                <div class="action-text">我的分享</div>
+              <!-- 互动数据 -->
+              <div class="interaction-overlay">
+                <div class="interaction-item">
+                  <i class="el-icon-star-off"></i>
+                  <span>{{ share.likes }}</span>
+                </div>
+                <div class="interaction-item">
+                  <i class="el-icon-chat-dot-round"></i>
+                  <span>{{ share.comments }}</span>
+                </div>
               </div>
-            </el-card>
-          </el-col>
-          <el-col :xs="12" :sm="8">
-            <el-card class="action-card" shadow="hover" @click="goToHistory">
-              <div class="action-content">
-                <i class="el-icon-time"></i>
-                <div class="action-text">播放历史</div>
+            </div>
+            
+            <!-- 分享内容 -->
+            <div class="share-content">
+              <h3 class="music-title">{{ share.musicInfo.title }}</h3>
+              <p class="music-artist">{{ share.musicInfo.artist }}</p>
+              <p class="content-text">{{ share.content }}</p>
+              
+              <!-- 标签 -->
+              <div class="share-tags" v-if="share.tags.length > 0">
+                <el-tag 
+                  v-for="tag in share.tags" 
+                  :key="tag" 
+                  size="small" 
+                  class="content-tag"
+                >
+                  {{ tag }}
+                </el-tag>
               </div>
-            </el-card>
-          </el-col>
-        </el-row>
+              
+              <!-- 发布时间 -->
+              <div class="share-time">
+                <i class="el-icon-clock"></i>
+                <span>{{ formatTime(share.createdAt) }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 喜欢内容 -->
+      <div v-else-if="currentNav === 'likes'">
+        <div v-if="likedShares.length === 0" class="empty-works">
+          <i class="el-icon-star-off"></i>
+          <p>暂无喜欢的作品</p>
+        </div>
+        
+        <div v-else class="shares-grid">
+          <div v-for="share in likedShares" :key="share.id" class="share-card" @click="goToShareDetail(share.id)">
+            <!-- 音乐封面 -->
+            <div class="share-cover">
+              <img :src="share.musicInfo.cover" :alt="share.musicInfo.title" class="cover-image">
+              <div class="cover-overlay">
+                <i class="el-icon-video-play"></i>
+              </div>
+              <!-- 互动数据 -->
+              <div class="interaction-overlay">
+                <div class="interaction-item">
+                  <i class="el-icon-star-off"></i>
+                  <span>{{ share.likes }}</span>
+                </div>
+                <div class="interaction-item">
+                  <i class="el-icon-chat-dot-round"></i>
+                  <span>{{ share.comments }}</span>
+                </div>
+              </div>
+            </div>
+            
+            <!-- 分享内容 -->
+            <div class="share-content">
+              <h3 class="music-title">{{ share.musicInfo.title }}</h3>
+              <p class="music-artist">{{ share.musicInfo.artist }}</p>
+              <p class="content-text">{{ share.content }}</p>
+              
+              <!-- 标签 -->
+              <div class="share-tags" v-if="share.tags.length > 0">
+                <el-tag 
+                  v-for="tag in share.tags" 
+                  :key="tag" 
+                  size="small" 
+                  class="content-tag"
+                >
+                  {{ tag }}
+                </el-tag>
+              </div>
+              
+              <!-- 发布时间 -->
+              <div class="share-time">
+                <i class="el-icon-clock"></i>
+                <span>{{ formatTime(share.createdAt) }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 收藏内容 -->
+      <div v-else-if="currentNav === 'collections'">
+        <div v-if="collectedShares.length === 0" class="empty-works">
+          <i class="el-icon-collection"></i>
+          <p>暂无收藏的作品</p>
+        </div>
+        
+        <div v-else class="shares-grid">
+          <div v-for="share in collectedShares" :key="share.id" class="share-card" @click="goToShareDetail(share.id)">
+            <!-- 音乐封面 -->
+            <div class="share-cover">
+              <img :src="share.musicInfo.cover" :alt="share.musicInfo.title" class="cover-image">
+              <div class="cover-overlay">
+                <i class="el-icon-video-play"></i>
+              </div>
+              <!-- 互动数据 -->
+              <div class="interaction-overlay">
+                <div class="interaction-item">
+                  <i class="el-icon-star-off"></i>
+                  <span>{{ share.likes }}</span>
+                </div>
+                <div class="interaction-item">
+                  <i class="el-icon-chat-dot-round"></i>
+                  <span>{{ share.comments }}</span>
+                </div>
+              </div>
+            </div>
+            
+            <!-- 分享内容 -->
+            <div class="share-content">
+              <h3 class="music-title">{{ share.musicInfo.title }}</h3>
+              <p class="music-artist">{{ share.musicInfo.artist }}</p>
+              <p class="content-text">{{ share.content }}</p>
+              
+              <!-- 标签 -->
+              <div class="share-tags" v-if="share.tags.length > 0">
+                <el-tag 
+                  v-for="tag in share.tags" 
+                  :key="tag" 
+                  size="small" 
+                  class="content-tag"
+                >
+                  {{ tag }}
+                </el-tag>
+              </div>
+              
+              <!-- 发布时间 -->
+              <div class="share-time">
+                <i class="el-icon-clock"></i>
+                <span>{{ formatTime(share.createdAt) }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 观看历史内容 -->
+      <div v-else-if="currentNav === 'history'">
+        <div v-if="historyShares.length === 0" class="empty-works">
+          <i class="el-icon-time"></i>
+          <p>暂无观看历史</p>
+        </div>
+        
+        <div v-else class="shares-grid">
+          <div v-for="share in historyShares" :key="share.id" class="share-card" @click="goToShareDetail(share.id)">
+            <!-- 音乐封面 -->
+            <div class="share-cover">
+              <img :src="share.musicInfo.cover" :alt="share.musicInfo.title" class="cover-image">
+              <div class="cover-overlay">
+                <i class="el-icon-video-play"></i>
+              </div>
+              <!-- 互动数据 -->
+              <div class="interaction-overlay">
+                <div class="interaction-item">
+                  <i class="el-icon-star-off"></i>
+                  <span>{{ share.likes }}</span>
+                </div>
+                <div class="interaction-item">
+                  <i class="el-icon-chat-dot-round"></i>
+                  <span>{{ share.comments }}</span>
+                </div>
+              </div>
+            </div>
+            
+            <!-- 分享内容 -->
+            <div class="share-content">
+              <h3 class="music-title">{{ share.musicInfo.title }}</h3>
+              <p class="music-artist">{{ share.musicInfo.artist }}</p>
+              <p class="content-text">{{ share.content }}</p>
+              
+              <!-- 标签 -->
+              <div class="share-tags" v-if="share.tags.length > 0">
+                <el-tag 
+                  v-for="tag in share.tags" 
+                  :key="tag" 
+                  size="small" 
+                  class="content-tag"
+                >
+                  {{ tag }}
+                </el-tag>
+              </div>
+              
+              <!-- 发布时间 -->
+              <div class="share-time">
+                <i class="el-icon-clock"></i>
+                <span>{{ formatTime(share.createdAt) }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
     <!-- 编辑资料对话框 -->
-    <el-dialog
-      v-model="editDialogVisible"
-      title="编辑资料"
-      width="500px"
-      :before-close="handleCloseEditDialog"
-    >
+    <el-dialog v-model="editDialogVisible" title="编辑资料" width="500px" :before-close="handleCloseEditDialog">
       <el-form :model="editForm" label-width="80px">
         <el-form-item label="昵称">
           <el-input v-model="editForm.nickname" placeholder="请输入昵称"></el-input>
         </el-form-item>
         <el-form-item label="个性签名">
-          <el-input
-            v-model="editForm.bio"
-            type="textarea"
-            :rows="3"
-            placeholder="请输入个性签名"
-            maxlength="100"
-            show-word-limit
-          ></el-input>
+          <el-input v-model="editForm.bio" type="textarea" :rows="3" placeholder="请输入个性签名" maxlength="100" show-word-limit></el-input>
         </el-form-item>
         <el-form-item label="头像">
-          <el-upload
-            class="avatar-uploader"
-            action="/api/upload"
-            :show-file-list="false"
-            :on-success="handleAvatarSuccess"
-            :before-upload="beforeAvatarUpload"
-          >
-            <img v-if="editForm.avatar" :src="editForm.avatar" class="avatar">
-            <i v-else class="el-icon-plus avatar-uploader-icon"></i>
-          </el-upload>
+          <div class="avatar-container">
+            <!-- 当前头像显示 -->
+            <div class="current-avatar">
+              <img v-if="editForm.avatar" :src="editForm.avatar" class="avatar">
+              <i v-else class="el-icon-user avatar-placeholder"></i>
+            </div>
+            <!-- 更换头像按钮 -->
+            <el-upload class="avatar-uploader" :http-request="handleCustomAvatarUpload" :show-file-list="false" :before-upload="beforeAvatarUpload" style="display: inline-block;">
+              <el-button type="primary" plain size="small" style="margin-top: 12px;">更换头像</el-button>
+            </el-upload>
+          </div>
         </el-form-item>
       </el-form>
       <template #footer>
@@ -155,38 +326,47 @@
 </template>
 
 <script>
-import { ref, reactive, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ref, reactive, onMounted, computed } from 'vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { useRouter } from 'vue-router'
+import { useUserStore } from '@/stores/user'
+import { storeToRefs } from 'pinia'
+import request from '@/api/request'
+import { fetchUserShares } from '@/api'
 
 export default {
   name: 'ProfilePage',
   setup() {
     const router = useRouter()
-    
-    // 用户信息
-    const userInfo = reactive({
-      id: 1,
-      phone: '138****5678',
-      nickname: '音乐爱好者',
-      avatar: '',
-      bio: '热爱音乐，分享美好'
-    })
+    const userStore = useUserStore()
+    const { userInfo } = storeToRefs(userStore)
 
     const defaultAvatar = '/default-avatar.png'
-    
-    // 对话框状态
     const editDialogVisible = ref(false)
     const securityDialogVisible = ref(false)
     const privacyDialogVisible = ref(false)
     const aboutDialogVisible = ref(false)
 
-    // 编辑表单
+    // 导航状态
+    const currentNav = ref('works') // works, likes, collections, history
+    
+    // 分享列表数据
+    const shares = ref([])
+    const likedShares = ref([])
+    const collectedShares = ref([])
+    const historyShares = ref([])
+
     const editForm = reactive({
       nickname: '',
       bio: '',
       avatar: ''
     })
+    
+    // 切换导航
+    const switchNav = (navType) => {
+      currentNav.value = navType
+      // 可以根据需要添加不同导航的数据加载逻辑
+    }
 
     // 方法
     const editAvatar = () => {
@@ -194,7 +374,7 @@ export default {
     }
 
     const showEditDialog = () => {
-      Object.assign(editForm, userInfo)
+      Object.assign(editForm, userInfo.value)
       editDialogVisible.value = true
     }
 
@@ -212,14 +392,41 @@ export default {
 
     const handleCloseEditDialog = (done) => {
       ElMessageBox.confirm('确定要放弃修改吗？')
-        .then(() => {
-          done()
-        })
+        .then(() => done())
         .catch(() => {})
     }
 
+    const handleCustomAvatarUpload = (options) => {
+      const { file, onSuccess, onError } = options
+      const formData = new FormData()
+      formData.append('file', file)
+
+      request.post('/user/avatar', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      }).then(response => {
+        console.log('头像上传响应:', response)
+        if (response.code === 200 && response.data) {
+          editForm.avatar = response.data.avatar
+          userStore.updateUserInfo({ avatar: response.data.avatar })
+          ElMessage.success('头像上传成功')
+          onSuccess(response)
+        } else {
+          ElMessage.error(response.message || '头像上传失败')
+          onError(response)
+        }
+      }).catch(error => {
+        console.error('头像上传失败:', error)
+        console.error('错误响应:', error.response)
+        ElMessage.error('头像上传失败，请重试')
+        onError(error)
+      })
+    }
+
     const handleAvatarSuccess = (response, file) => {
-      editForm.avatar = URL.createObjectURL(file.raw)
+      // 这个函数现在可能不会被调用，因为我们使用了自定义上传
+      console.log('头像上传成功:', response)
     }
 
     const beforeAvatarUpload = (file) => {
@@ -241,7 +448,7 @@ export default {
     const saveProfile = async () => {
       try {
         // 调用 API 保存资料
-        Object.assign(userInfo, editForm)
+        userStore.updateUserInfo(editForm)
         editDialogVisible.value = false
         ElMessage.success('资料更新成功')
       } catch (error) {
@@ -261,8 +468,66 @@ export default {
       router.push('/history')
     }
 
-    // 初始化用户数据
+    const goToShareDetail = (id) => {
+      router.push(`/share/${id}`)
+    }
+
+    // 加载用户分享
+    const loadShares = async () => {
+      try {
+        // 调用真实API获取用户分享
+        const userShares = await fetchUserShares()
+        
+        // 转换数据格式以适配前端
+        shares.value = userShares.map(share => ({
+          id: share.id,
+          musicInfo: {
+            id: share.musicId,
+            title: share.musicTitle,
+            artist: share.musicArtist,
+            album: share.musicAlbum,
+            cover: share.musicCover,
+            duration: 0,
+            source: 'qqmusic'
+          },
+          content: share.content,
+          tags: share.tags ? share.tags.split(',') : [],
+          privacy: share.privacy || 'public',
+          status: 'normal',
+          likes: share.likes || 0,
+          comments: share.comments || 0,
+          shares: share.shares || 0,
+          createdAt: share.createdAt
+        }))
+      } catch (error) {
+        console.error('加载分享失败:', error)
+        ElMessage.error('加载分享失败')
+      }
+    }
+
+    // 格式化时间
+    const formatTime = (timeString) => {
+      const time = new Date(timeString)
+      const now = new Date()
+      const diff = now - time
+      
+      const minutes = Math.floor(diff / 60000)
+      const hours = Math.floor(diff / 3600000)
+      const days = Math.floor(diff / 86400000)
+      
+      if (minutes < 60) {
+        return `${minutes}分钟前`
+      } else if (hours < 24) {
+        return `${hours}小时前`
+      } else if (days < 7) {
+        return `${days}天前`
+      } else {
+        return time.toLocaleDateString()
+      }
+    }
+
     onMounted(async () => {
+      await loadShares()
       try {
         // 调用 API 获取用户信息
         // const response = await getUserInfo()
@@ -287,202 +552,457 @@ export default {
       showAboutDialog,
       handleCloseEditDialog,
       handleAvatarSuccess,
+      handleCustomAvatarUpload,
       beforeAvatarUpload,
       saveProfile,
       goToMyFavorites,
       goToMyShares,
-      goToHistory
+      goToHistory,
+      goToShareDetail,
+      currentNav,
+      switchNav,
+      shares,
+      likedShares,
+      collectedShares,
+      historyShares,
+      formatTime
     }
   }
 }
 </script>
 
 <style scoped>
-.profile-container {
-  min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+/* 基础样式重置 */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
+/* 深色主题配色 */
+:root {
+  --bg-primary: #000000;
+  --bg-secondary: #181818;
+  --text-primary: #ffffff;
+  --text-secondary: #a8a8a8;
+  --accent-color: #ff0050;
+  --border-color: #333333;
+  --hover-bg: #2a2a2a;
+}
+
+/* 页面容器 */
+.profile-container {
+  min-height: 100vh;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* 顶部用户信息区 */
 .profile-header {
+  padding: 24px 0;
+  background-color: var(--bg-primary);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.user-info-section {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 0 16px;
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* 头像样式 */
+.avatar-container {
+  cursor: pointer;
   position: relative;
-  height: 300px;
+}
+
+.user-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--text-primary);
+  transition: transform 0.3s ease;
+}
+
+.user-avatar:hover {
+  transform: scale(1.05);
+}
+
+/* 用户基本信息 */
+.user-details {
+  flex: 1;
+}
+
+.username {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 12px;
+}
+
+/* 关注、粉丝、获赞统计 */
+.stats {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 12px;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.stat-number {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.stat-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+/* 个性签名 */
+.bio {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+/* 中间导航栏 */
+.profile-nav {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  height: 50px;
+  background-color: var(--bg-primary);
+  border-bottom: 1px solid var(--border-color);
+  overflow-x: auto;
+  padding: 0 16px;
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 4px;
+  height: 100%;
+  font-size: 14px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+  padding: 0 16px;
+}
+
+.nav-item:hover {
+  color: var(--text-primary);
+}
+
+.nav-item.active {
+  color: var(--text-primary);
+  border-bottom: 2px solid var(--accent-color);
+  font-weight: 600;
+}
+
+.nav-count {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.nav-item.active .nav-count {
+  color: var(--text-primary);
+}
+
+/* 作品列表容器 */
+.works-container {
+  padding: 16px;
+  background-color: var(--bg-primary);
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* 空作品状态 */
+.empty-works {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 0;
+  color: var(--text-secondary);
+}
+
+.empty-works i {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.empty-works p {
+  font-size: 14px;
+}
+
+/* 分享列表网格布局 */
+.shares-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 20px;
+}
+
+/* 分享卡片样式 */
+.share-card {
+  background-color: var(--bg-secondary);
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.share-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+}
+
+/* 分享封面样式 */
+.share-cover {
+  position: relative;
+  aspect-ratio: 16/9;
   overflow: hidden;
 }
 
-.header-bg {
+.cover-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.share-card:hover .cover-image {
+  transform: scale(1.05);
+}
+
+/* 封面悬浮层 */
+.cover-overlay {
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(135deg, rgba(102, 126, 234, 0.8) 0%, rgba(118, 75, 162, 0.8) 100%);
-}
-
-.user-info {
-  position: relative;
-  z-index: 1;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent);
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 100%;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.share-card:hover .cover-overlay {
+  opacity: 1;
+}
+
+.cover-overlay i {
+  font-size: 32px;
   color: white;
-  text-align: center;
+  opacity: 0;
+  transition: opacity 0.3s;
 }
 
-.avatar-section .avatar {
-  position: relative;
-  width: 100px;
-  height: 100px;
-  border-radius: 50%;
-  margin: 0 auto 16px;
-  cursor: pointer;
-  border: 4px solid rgba(255, 255, 255, 0.3);
-  overflow: hidden;
+.share-card:hover .cover-overlay i {
+  opacity: 1;
 }
 
-.avatar img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.avatar-edit {
+/* 互动数据悬浮层 */
+.interaction-overlay {
   position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: rgba(0, 0, 0, 0.6);
+  bottom: 12px;
+  left: 12px;
+  display: flex;
+  gap: 16px;
   color: white;
-  padding: 4px;
   font-size: 12px;
 }
 
-.username {
-  font-size: 24px;
-  font-weight: 600;
-  margin-bottom: 8px;
+.interaction-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
 }
 
-.phone {
-  opacity: 0.8;
-  font-size: 14px;
-}
-
-.profile-content {
-  padding: 24px;
-  background: white;
-  border-radius: 20px 20px 0 0;
-  margin-top: -20px;
-  position: relative;
-}
-
-.stats-section {
-  margin-bottom: 24px;
-}
-
-.stat-item {
-  text-align: center;
+/* 分享内容样式 */
+.share-content {
   padding: 16px;
 }
 
-.stat-number {
-  font-size: 24px;
+.music-title {
+  margin: 0 0 8px 0;
+  font-size: 16px;
   font-weight: 600;
-  color: #667eea;
-  margin-bottom: 8px;
+  color: var(--text-primary);
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
 }
 
-.stat-label {
+.music-artist {
+  margin: 0 0 12px 0;
   font-size: 14px;
-  color: #666;
+  color: var(--text-secondary);
 }
 
-.menu-section {
-  margin-bottom: 24px;
+.content-text {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  color: var(--text-primary);
+  line-height: 1.5;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
 }
 
-.card-header {
-  font-weight: 600;
-  color: #333;
-}
-
-.action-section {
-  margin-bottom: 24px;
-}
-
-.action-card {
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.action-card:hover {
-  transform: translateY(-4px);
-}
-
-.action-content {
-  text-align: center;
-  padding: 20px;
-}
-
-.action-content i {
-  font-size: 32px;
-  color: #667eea;
+/* 标签样式 */
+.share-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
   margin-bottom: 12px;
 }
 
-.action-text {
-  font-size: 14px;
-  color: #333;
-  font-weight: 500;
+.content-tag {
+  background-color: var(--hover-bg);
+  color: var(--text-primary);
+  border: none;
+  font-size: 11px;
+  padding: 2px 8px;
 }
 
-.avatar-uploader {
-  :deep(.el-upload) {
-    border: 1px dashed #d9d9d9;
-    border-radius: 6px;
-    cursor: pointer;
-    position: relative;
-    overflow: hidden;
-    transition: all 0.3s ease;
-  }
-  
-  :deep(.el-upload:hover) {
-    border-color: #667eea;
-  }
+/* 发布时间样式 */
+.share-time {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text-secondary);
 }
 
-.avatar-uploader-icon {
-  font-size: 28px;
-  color: #8c939d;
-  width: 100px;
-  height: 100px;
-  line-height: 100px;
-  text-align: center;
+/* 编辑资料对话框样式 */
+:deep(.el-dialog) {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+}
+
+:deep(.el-dialog__header) {
+  border-bottom: 1px solid var(--border-color);
+}
+
+:deep(.el-dialog__title) {
+  color: var(--text-primary);
+}
+
+:deep(.el-form-item__label) {
+  color: var(--text-primary);
+}
+
+:deep(.el-input__inner),
+:deep(.el-textarea__inner) {
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+}
+
+:deep(.el-input__inner:focus),
+:deep(.el-textarea__inner:focus) {
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 2px rgba(255, 0, 80, 0.2);
+}
+
+/* 头像上传组件样式 */
+:deep(.el-upload) {
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border-color);
+}
+
+:deep(.el-upload:hover) {
+  border-color: var(--accent-color);
+}
+
+.avatar-container {
+  margin-bottom: 16px;
+}
+
+.current-avatar {
+  margin-bottom: 12px;
 }
 
 .avatar {
   width: 100px;
   height: 100px;
-  display: block;
+  border-radius: 50%;
   object-fit: cover;
 }
 
+.avatar-placeholder {
+  width: 100px;
+  height: 100px;
+  line-height: 100px;
+  text-align: center;
+  font-size: 40px;
+  background-color: var(--bg-secondary);
+  border-radius: 50%;
+  color: var(--text-secondary);
+}
+
+/* 响应式设计 */
 @media (max-width: 768px) {
   .profile-header {
-    height: 250px;
-  }
-  
-  .profile-content {
     padding: 16px;
-    margin-top: -30px;
   }
   
-  .stat-item {
-    padding: 12px;
+  .user-info-section {
+    gap: 16px;
+  }
+  
+  .user-avatar {
+    width: 64px;
+    height: 64px;
+  }
+  
+  .username {
+    font-size: 18px;
+  }
+  
+  .stats {
+    gap: 16px;
   }
   
   .stat-number {
-    font-size: 20px;
+    font-size: 14px;
+  }
+  
+  .stat-label {
+    font-size: 11px;
+  }
+  
+  .shares-grid {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 12px;
   }
 }
 </style>

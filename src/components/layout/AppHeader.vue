@@ -5,7 +5,7 @@
       <div class="header-left">
         <div class="logo">
           <router-link to="/">
-            <h2>🎵 音乐分享</h2>
+            <h2>🎵 拾音</h2>
           </router-link>
         </div>
         <nav class="main-nav">
@@ -129,8 +129,13 @@ const handleSearch = () => {
     return
   }
   
-  // 如果搜索页面不存在，可以先跳转到推荐页并显示提示
-  ElMessage.info(`搜索: ${searchKeyword.value.trim()}`)
+  // 跳转到搜索结果页面
+  router.push({
+    path: '/search',
+    query: {
+      keyword: searchKeyword.value.trim()
+    }
+  })
   searchKeyword.value = ''
 }
 

@@ -4,19 +4,29 @@ import { ElMessage } from 'element-plus'
 const request = axios.create({
   baseURL: 'http://localhost:8080/api', // 后端地址
   timeout: 10000,
-  withCredentials: true
+  withCredentials: true,
+  headers: {
+    'Content-Type': 'application/json'
+  }
 })
 
-// 请求拦截器 - 添加token
+// 请求拦截器 - 添加token和打印请求信息
 request.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token')
+    console.log('请求URL:', config.url)
+    console.log('localStorage中的token:', token)
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
+      console.log('已添加Authorization头:', config.headers.Authorization)
+    } else {
+      console.log('未找到token，请求将不包含Authorization头')
     }
+    console.log('请求配置:', config)
     return config
   },
   (error) => {
+    console.error('请求拦截器错误:', error)
     return Promise.reject(error)
   }
 )

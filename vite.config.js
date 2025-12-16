@@ -11,6 +11,23 @@ export default defineConfig({
   },
   server: {
     port: 5173,
-    host: true
+    host: true,
+    proxy: {
+      // 配置后端API代理
+      '/api': {
+        target: 'http://localhost:8080',
+        changeOrigin: true
+      },
+      // 配置网易云音乐API代理
+      '/api/netease': {
+        target: 'https://music.163.com/',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/netease/, ''),
+        headers: {
+          'Referer': 'https://music.163.com/',
+          'Host': 'music.163.com'
+        }
+      }
+    }
   }
 })

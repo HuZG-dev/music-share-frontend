@@ -6,7 +6,7 @@
         <div class="welcome-section">
           <div class="welcome-icon">🎉</div>
           <h2 class="welcome-title">欢迎回来！</h2>
-          <p class="welcome-subtitle">您已成功登录音乐分享平台</p>
+          <p class="welcome-subtitle">您已成功登录拾音</p>
         </div>
 
         <div class="user-card">
@@ -38,7 +38,7 @@
 
       <!-- 未登录状态 - 登录表单 -->
       <div v-else>
-        <h2 class="form-title">登录音乐分享平台</h2>
+        <h2 class="form-title">登录拾音</h2>
         <el-form :model="form" :rules="rules" ref="formRef">
           <el-form-item prop="phone">
             <el-input

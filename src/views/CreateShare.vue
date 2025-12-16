@@ -26,9 +26,10 @@
                   clearable
                   @input="handleSearchInput"
                   @clear="clearSearchResults"
+                  @keyup.enter="handleSearch"
                 >
                   <template #append>
-                    <el-button :icon="Search" @click="searchMusic" />
+                    <el-button :icon="Search" @click="handleSearch" />
                   </template>
                 </el-input>
               </div>
@@ -50,7 +51,14 @@
                     <div class="music-cover">
                       <img :src="music.cover" :alt="music.title" />
                       <div class="cover-overlay">
-                        <el-icon><VideoPlay /></el-icon>
+                        <el-button 
+                          type="text" 
+                          size="small" 
+                          @click.stop="handlePlayClick(music, $event)"
+                          :disabled="isLoadingMusic"
+                        >
+                          <el-icon><VideoPlay /></el-icon>
+                        </el-button>
                       </div>
                     </div>
                     <div class="music-info">
@@ -60,6 +68,19 @@
                     </div>
                     <div class="music-duration">{{ formatDuration(music.duration) }}</div>
                   </div>
+                </div>
+                
+                <!-- 播放器组件 -->
+                <div class="music-player">
+                  <Player 
+                    :music-info="currentPlayingMusic || {
+                      title: '请选择一首音乐',
+                      artist: '',
+                      cover: 'https://via.placeholder.com/64x64/42b983/ffffff?text=🎵',
+                      url: ''
+                    }"
+                    :autoplay="true"
+                  />
                 </div>
               </div>
 
@@ -94,53 +115,25 @@
               />
             </div>
 
-            <!-- 标签选择 -->
-            <div class="tag-selector">
+            <!-- 分类选择 -->
+            <div class="category-selector">
               <div class="section-title">
-                添加标签
-                <span class="sub-title">（可选，最多5个）</span>
+                选择分类
+                <span class="sub-title">（必选）</span>
               </div>
-              <div class="tags-container">
-                <!-- 热门标签 -->
-                <div class="popular-tags">
-                  <el-tag
-                    v-for="tag in popularTags"
-                    :key="tag"
-                    :type="selectedTags.includes(tag) ? 'primary' : 'info'"
-                    class="tag-item"
-                    @click="toggleTag(tag)"
-                  >
-                    {{ tag }}
-                  </el-tag>
-                </div>
-                
-                <!-- 自定义标签 -->
-                <div class="custom-tag-input">
-                  <el-input
-                    v-model="customTag"
-                    placeholder="输入自定义标签"
-                    size="small"
-                    @keyup.enter="addCustomTag"
-                  >
-                    <template #append>
-                      <el-button @click="addCustomTag">添加</el-button>
-                    </template>
-                  </el-input>
-                </div>
-                
-                <!-- 已选标签 -->
-                <div v-if="selectedTags.length > 0" class="selected-tags">
-                  <div class="selected-tags-title">已选标签：</div>
-                  <el-tag
-                    v-for="tag in selectedTags"
-                    :key="tag"
-                    closable
-                    @close="removeTag(tag)"
-                    class="selected-tag"
-                  >
-                    {{ tag }}
-                  </el-tag>
-                </div>
+              <div class="category-container">
+                <el-select
+                  v-model="selectedCategory"
+                  placeholder="请选择音乐分类"
+                  class="category-select"
+                >
+                  <el-option
+                    v-for="category in musicCategories"
+                    :key="category"
+                    :label="category"
+                    :value="category"
+                  />
+                </el-select>
               </div>
             </div>
 
@@ -217,8 +210,8 @@
               <div class="guide-item">
                 <div class="guide-icon">🏷️</div>
                 <div class="guide-text">
-                  <strong>添加标签</strong>
-                  <p>使用标签让更多人发现你的分享</p>
+                  <strong>选择分类</strong>
+                  <p>选择合适的分类让更多人发现你的分享</p>
                 </div>
               </div>
               
@@ -277,6 +270,12 @@ import {
   InfoFilled,
   Clock
 } from '@element-plus/icons-vue'
+// 导入网易云音乐搜索API
+import { searchMusic, getMusicUrl } from '../api/netease.js'
+// 导入播放器组件
+import Player from '../components/Player.vue'
+// 导入创建分享API
+import { createShare } from '../api/index.js'
 
 const router = useRouter()
 
@@ -285,18 +284,19 @@ const searchKeyword = ref('')
 const searchResults = ref([])
 const selectedMusic = ref(null)
 
+// 播放相关
+const currentPlayingMusic = ref(null)
+const isLoadingMusic = ref(false)
+
 // 分享内容
 const shareContent = ref('')
-const selectedTags = ref([])
-const customTag = ref('')
+const selectedCategory = ref('')
 const privacy = ref('public')
 const publishing = ref(false)
 
-// 热门标签
-const popularTags = ref([
-  '单曲循环', '深夜emo', '运动必备', '学习专注',
-  '经典老歌', '新歌推荐', '治愈系', '摇滚',
-  '流行', '民谣', '电子', '爵士'
+// 音乐分类
+const musicCategories = ref([
+  '流行', '民谣', 'R&B', '说唱', '摇滚', '轻音'
 ])
 
 // 最近分享（模拟数据）
@@ -305,57 +305,59 @@ const recentShares = ref([
     id: 1,
     musicTitle: '晴天',
     musicArtist: '周杰伦',
-    musicCover: 'https://via.placeholder.com/40x40/667eea/ffffff',
+    musicCover: 'https://p1.music.126.net/6y-UleORITEDbvrOLV0Q8A==/7942152268854681.jpg',
     time: '2小时前'
   },
   {
     id: 2,
     musicTitle: '起风了',
     musicArtist: '买辣椒也用券',
-    musicCover: 'https://via.placeholder.com/40x40/764ba2/ffffff',
+    musicCover: 'https://p2.music.126.net/8oW1h4T586uL9I08lJqgMg==/109951164239389148.jpg',
     time: '1天前'
   }
 ])
 
 // 计算属性：是否可以发布
 const canPublish = computed(() => {
-  return selectedMusic.value && shareContent.value.trim().length > 0
+  return selectedMusic.value && shareContent.value.trim().length > 0 && selectedCategory.value
 })
 
 // 方法
-const handleSearchInput = () => {
-  // 防抖搜索，可以后续优化
+const handleSearchInput = (value) => {
+  // 添加防抖搜索
+  if (value && value.trim().length > 0) {
+    // 可以考虑添加防抖功能
+    // setTimeout(() => {
+    //   handleSearch();
+    // }, 500);
+  } else {
+    clearSearchResults();
+  }
 }
 
-const searchMusic = async () => {
+const handleSearch = async () => {
   if (!searchKeyword.value.trim()) {
     ElMessage.warning('请输入搜索关键词')
     return
   }
 
   try {
-    // 模拟搜索API调用
-    searchResults.value = [
-      {
-        id: 'qq_123456',
-        title: '晴天',
-        artist: '周杰伦',
-        album: '叶惠美',
-        cover: 'https://via.placeholder.com/60x60/667eea/ffffff',
-        duration: 269,
-        source: 'qqmusic'
-      },
-      {
-        id: 'qq_123457',
-        title: '晴天 (Live)',
-        artist: '周杰伦',
-        album: 'The One演唱会',
-        cover: 'https://via.placeholder.com/60x60/764ba2/ffffff',
-        duration: 285,
-        source: 'qqmusic'
-      }
-    ]
+    // 调用网易云音乐搜索API
+    const results = await searchMusic(searchKeyword.value.trim())
+    // 转换API返回的数据格式以匹配页面需求
+    searchResults.value = results.map(music => ({
+      id: music.id,
+      title: music.name,
+      artist: music.artist,
+      album: typeof music.album === 'object' ? music.album.name : music.album,
+      cover: music.pic || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Crect fill='%2342b983' width='200' height='200'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-size='80' fill='white'%3E🎵%3C/text%3E%3C/svg%3E",
+      duration: music.duration || 0,
+      source: 'netease'
+    }))
+    // 清空当前播放，避免自动播放
+    currentPlayingMusic.value = null
   } catch (error) {
+    console.error('搜索音乐失败:', error)
     ElMessage.error('搜索失败，请重试')
   }
 }
@@ -364,52 +366,64 @@ const clearSearchResults = () => {
   searchResults.value = []
 }
 
+// 播放音乐
+const playMusic = async (music) => {
+  if (!music) return
+  
+  try {
+    console.log('开始播放音乐:', music.title, '-', music.artist, 'ID:', music.id)
+    isLoadingMusic.value = true
+    // 获取音乐播放URL
+    const musicWithUrl = await getMusicUrl(music.id)
+    
+    console.log('获取到音乐URL数据:', JSON.stringify(musicWithUrl, null, 2))
+    
+    // 不使用测试URL，如果获取失败就不播放
+    if (!musicWithUrl.url) {
+      ElMessage.error('无法获取音乐播放URL')
+      return
+    }
+    
+    const finalUrl = musicWithUrl.url
+    console.log('最终使用的音乐URL:', finalUrl)
+    
+    // 更新当前播放歌曲信息，合并搜索结果和播放URL
+    currentPlayingMusic.value = {
+      id: music.id,
+      title: music.title,
+      artist: music.artist,
+      album: music.album,
+      cover: music.cover,
+      url: finalUrl
+    }
+    
+    console.log('当前播放歌曲:', JSON.stringify(currentPlayingMusic.value, null, 2))
+    console.log('传递给Player组件的URL:', currentPlayingMusic.value.url)
+  } catch (error) {
+    console.error('播放音乐失败:', error)
+    ElMessage.error('播放失败，请重试')
+  } finally {
+    isLoadingMusic.value = false
+  }
+}
+
 const selectMusic = (music) => {
   selectedMusic.value = music
+  // 点击选择时播放音乐
+  playMusic(music)
 }
 
 const clearSelection = () => {
   selectedMusic.value = null
 }
 
-const toggleTag = (tag) => {
-  const index = selectedTags.value.indexOf(tag)
-  if (index > -1) {
-    selectedTags.value.splice(index, 1)
-  } else {
-    if (selectedTags.value.length < 5) {
-      selectedTags.value.push(tag)
-    } else {
-      ElMessage.warning('最多只能选择5个标签')
-    }
-  }
+// 点击播放按钮时才播放音乐
+const handlePlayClick = (music, event) => {
+  event.stopPropagation()
+  playMusic(music)
 }
 
-const addCustomTag = () => {
-  if (!customTag.value.trim()) {
-    ElMessage.warning('请输入标签内容')
-    return
-  }
 
-  if (selectedTags.value.length >= 5) {
-    ElMessage.warning('最多只能添加5个标签')
-    return
-  }
-
-  if (!selectedTags.value.includes(customTag.value)) {
-    selectedTags.value.push(customTag.value)
-    customTag.value = ''
-  } else {
-    ElMessage.warning('该标签已存在')
-  }
-}
-
-const removeTag = (tag) => {
-  const index = selectedTags.value.indexOf(tag)
-  if (index > -1) {
-    selectedTags.value.splice(index, 1)
-  }
-}
 
 const formatDuration = (seconds) => {
   const mins = Math.floor(seconds / 60)
@@ -423,12 +437,36 @@ const handlePublish = async () => {
   publishing.value = true
 
   try {
-    // 模拟发布API调用
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    // 构建分享数据
+    const shareData = {
+      musicId: selectedMusic.value.id,
+      musicTitle: selectedMusic.value.title,
+      musicArtist: selectedMusic.value.artist,
+      musicAlbum: selectedMusic.value.album,
+      musicCover: selectedMusic.value.cover,
+      content: shareContent.value.trim(),
+      musicCategory: selectedCategory.value,
+      privacy: privacy.value
+    }
+    
+    console.log('发布分享数据:', shareData)
+    
+    // 调用创建分享API
+    await createShare(shareData)
     
     ElMessage.success('分享发布成功！')
     router.push('/')
   } catch (error) {
+    console.error('发布失败:', error)
+    if (error.response) {
+      console.error('响应状态:', error.response.status)
+      console.error('响应数据:', error.response.data)
+      console.error('响应头:', error.response.headers)
+    } else if (error.request) {
+      console.error('请求已发送但未收到响应:', error.request)
+    } else {
+      console.error('请求设置错误:', error.message)
+    }
     ElMessage.error('发布失败，请重试')
   } finally {
     publishing.value = false
@@ -530,10 +568,14 @@ onMounted(() => {
   color: #999;
 }
 
+
+
 .music-list {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  max-height: 400px;
+  overflow-y: auto;
 }
 
 .music-item {
@@ -622,6 +664,18 @@ onMounted(() => {
   font-size: 12px;
   color: #999;
   flex-shrink: 0;
+}
+
+/* 播放器样式 */
+.music-player {
+  margin-top: 20px;
+  margin-bottom: 20px;
+}
+
+/* 加载状态 */
+.is-loading {
+  opacity: 0.6;
+  pointer-events: none;
 }
 
 /* 已选音乐 */
@@ -746,7 +800,7 @@ onMounted(() => {
 }
 
 /* 指引区域 */
-.gide-card,
+.guide-card,
 .recent-shares-card {
   border-radius: 12px;
   margin-bottom: 20px;

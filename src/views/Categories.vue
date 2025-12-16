@@ -1,7 +1,8 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { VideoPlay, Star, Share, ArrowLeft } from '@element-plus/icons-vue'
+import { VideoPlay, Star } from '@element-plus/icons-vue'
+import { fetchAllShares } from '@/api'
 
 const router = useRouter()
 
@@ -9,193 +10,107 @@ const router = useRouter()
 const musicCategories = ref([
   {
     id: 1,
-    name: '流行音乐',
+    name: '流行',
     icon: '🎵',
     description: '最新最热的流行歌曲',
-    cover: 'https://via.placeholder.com/300x200/667eea/ffffff?text=Pop',
+    cover: 'https://p1.music.126.net/6y-UleORITEDbvrOLV0Q8A==/7942152268854681.jpg',
     color: '#667eea',
     count: 12543
   },
   {
     id: 2,
-    name: '摇滚',
-    icon: '🎸',
-    description: '激情四射的摇滚乐曲',
-    cover: 'https://via.placeholder.com/300x200/764ba2/ffffff?text=Rock',
-    color: '#764ba2',
-    count: 8765
-  },
-  {
-    id: 3,
-    name: '电子',
-    icon: '🎧',
-    description: '动感电子音乐',
-    cover: 'https://via.placeholder.com/300x200/f093fb/ffffff?text=EDM',
-    color: '#f093fb',
-    count: 6342
-  },
-  {
-    id: 4,
     name: '民谣',
     icon: '🌿',
     description: '温暖人心的民谣歌曲',
-    cover: 'https://via.placeholder.com/300x200/4ecdc4/ffffff?text=Folk',
+    cover: 'https://p1.music.126.net/m4aO0eQj8Cv38YqF6V4Uyw==/109951163462725661.jpg',
     color: '#4ecdc4',
     count: 5432
   },
   {
-    id: 5,
+    id: 3,
+    name: 'R&B',
+    icon: '🎶',
+    description: '节奏蓝调，情感充沛',
+    cover: 'https://p2.music.126.net/6y-UleORITEDbvrOLV0Q8A==/7942152268854681.jpg',
+    color: '#ff9ff3',
+    count: 3890
+  },
+  {
+    id: 4,
     name: '说唱',
     icon: '🎤',
     description: '节奏感十足的说唱音乐',
-    cover: 'https://via.placeholder.com/300x200/ff6b6b/ffffff?text=Rap',
+    cover: 'https://p2.music.126.net/6y-UleORITEDbvrOLV0Q8A==/7942152268854681.jpg',
     color: '#ff6b6b',
     count: 4876
   },
   {
+    id: 5,
+    name: '摇滚',
+    icon: '🎸',
+    description: '激情四射的摇滚乐曲',
+    cover: 'https://p2.music.126.net/8oW1h4T586uL9I08lJqgMg==/109951164239389148.jpg',
+    color: '#764ba2',
+    count: 8765
+  },
+  {
     id: 6,
-    name: '古典',
-    icon: '🎻',
-    description: '经典古典音乐作品',
-    cover: 'https://via.placeholder.com/300x200/45b7d1/ffffff?text=Classical',
-    color: '#45b7d1',
-    count: 3210
-  },
-  {
-    id: 7,
-    name: '爵士',
-    icon: '🎷',
-    description: '优雅爵士乐',
-    cover: 'https://via.placeholder.com/300x200/96ceb4/ffffff?text=Jazz',
-    color: '#96ceb4',
-    count: 2987
-  },
-  {
-    id: 8,
-    name: '轻音乐',
+    name: '轻音',
     icon: '🎼',
     description: '放松身心的轻音乐',
-    cover: 'https://via.placeholder.com/300x200/ffcc5c/ffffff?text=Light',
+    cover: 'https://p1.music.126.net/6y-UleORITEDbvrOLV0Q8A==/7942152268854681.jpg',
     color: '#ffcc5c',
     count: 4123
-  },
-  {
-    id: 9,
-    name: '影视原声',
-    icon: '🎬',
-    description: '经典影视配乐',
-    cover: 'https://via.placeholder.com/300x200/588c7e/ffffff?text=OST',
-    color: '#588c7e',
-    count: 3567
-  },
-  {
-    id: 10,
-    name: '游戏音乐',
-    icon: '🎮',
-    description: '游戏背景音乐',
-    cover: 'https://via.placeholder.com/300x200/d96459/ffffff?text=Game',
-    color: '#d96459',
-    count: 2890
-  },
-  {
-    id: 11,
-    name: '民族音乐',
-    icon: '🎪',
-    description: '各民族传统音乐',
-    cover: 'https://via.placeholder.com/300x200/f2e394/ffffff?text=Ethnic',
-    color: '#f2e394',
-    count: 1876
-  },
-  {
-    id: 12,
-    name: '纯音乐',
-    icon: '🎹',
-    description: '无歌词纯器乐作品',
-    cover: 'https://via.placeholder.com/300x200/87a7b4/ffffff?text=Instrumental',
-    color: '#87a7b4',
-    count: 5234
   }
 ])
 
 // 当前选中的分类
 const activeCategory = ref(null)
 
-// 分类下的热门音乐
-const categorySongs = ref([])
+// 当前选中的分类名称（用于导航栏）
+const activeCategoryName = ref('')
+
+// 分类下的分享数据
+const categoryShares = ref([])
+
+// 获取分类下的分享数据
+const loadCategoryShares = async (categoryId, categoryName) => {
+  try {
+    const allShares = await fetchAllShares()
+    // 模拟按分类过滤（实际应由后端实现）
+    // 这里使用categoryName来过滤具有相同音乐分类的分享
+    categoryShares.value = allShares.filter(share => 
+      share.musicCategory === categoryName
+    ).slice(0, 10)
+  } catch (error) {
+    console.error('获取分类分享失败:', error)
+  }
+}
 
 // 方法
 const selectCategory = (category) => {
   activeCategory.value = category
-  loadCategorySongs(category.id)
+  activeCategoryName.value = category.name
+  loadCategoryShares(category.id, category.name)
 }
 
-const loadCategorySongs = (categoryId) => {
-  categorySongs.value = [
-    {
-      id: 1,
-      name: '热门歌曲示例 1',
-      artist: '知名歌手',
-      cover: 'https://via.placeholder.com/80x80/667eea/ffffff',
-      duration: '04:15',
-      playCount: 123456,
-      liked: false,
-      likeCount: 2345
-    },
-    {
-      id: 2,
-      name: '热门歌曲示例 2',
-      artist: '实力唱将',
-      cover: 'https://via.placeholder.com/80x80/764ba2/ffffff',
-      duration: '03:45',
-      playCount: 98765,
-      liked: true,
-      likeCount: 1876
-    },
-    {
-      id: 3,
-      name: '热门歌曲示例 3',
-      artist: '新晋艺人',
-      cover: 'https://via.placeholder.com/80x80/f093fb/ffffff',
-      duration: '03:20',
-      playCount: 87654,
-      liked: false,
-      likeCount: 1543
-    },
-    {
-      id: 4,
-      name: '热门歌曲示例 4',
-      artist: '独立音乐人',
-      cover: 'https://via.placeholder.com/80x80/4ecdc4/ffffff',
-      duration: '03:55',
-      playCount: 76543,
-      liked: false,
-      likeCount: 1321
-    },
-    {
-      id: 5,
-      name: '热门歌曲示例 5',
-      artist: '乐队组合',
-      cover: 'https://via.placeholder.com/80x80/ff6b6b/ffffff',
-      duration: '04:10',
-      playCount: 65432,
-      liked: true,
-      likeCount: 1198
-    }
-  ]
+// 处理分类导航栏点击事件
+const handleCategoryChange = (tab) => {
+  const categoryName = tab.props.name
+  const category = musicCategories.value.find(cat => cat.name === categoryName)
+  if (category) {
+    activeCategory.value = category
+    loadCategoryShares(category.id, category.name)
+  }
 }
 
-const playMusic = (song) => {
-  console.log('播放音乐:', song.name)
+const viewShare = (share) => {
+  router.push(`/share/${share.id}`)
 }
 
-const toggleLike = (song) => {
-  song.liked = !song.liked
-  song.likeCount += song.liked ? 1 : -1
-}
+// 移除goBackToCategories函数，不再需要返回分类列表
 
-const handleShare = (song) => {
-  console.log('分享音乐:', song.name)
-}
+// 移除hotCategories和otherCategories计算属性
 
 const formatCount = (count) => {
   if (count >= 10000) {
@@ -204,19 +119,11 @@ const formatCount = (count) => {
   return count.toString()
 }
 
-const goBackToCategories = () => {
-  activeCategory.value = null
-  categorySongs.value = []
-}
-
-// 热门分类（前6个）
-const hotCategories = computed(() => musicCategories.value.slice(0, 6))
-
-// 其他分类
-const otherCategories = computed(() => musicCategories.value.slice(6))
-
 onMounted(() => {
-  // 初始化代码
+  // 默认选中第一个分类（流行）
+  if (musicCategories.value.length > 0) {
+    selectCategory(musicCategories.value[0])
+  }
 })
 </script>
 
@@ -232,84 +139,19 @@ onMounted(() => {
 
     <!-- 主要内容区域 -->
     <div class="main-content">
-      <!-- 分类浏览模式 -->
-      <div v-if="!activeCategory" class="categories-mode">
-        <!-- 热门分类 -->
-        <section class="section">
-          <div class="section-header">
-            <h2 class="section-title">热门分类</h2>
-          </div>
-          
-          <div class="hot-categories-grid">
-            <div
-              v-for="category in hotCategories"
-              :key="category.id"
-              class="hot-category-card"
-              @click="selectCategory(category)"
-            >
-              <div class="category-icon" :style="{ backgroundColor: category.color }">
-                {{ category.icon }}
-              </div>
-              <div class="category-info">
-                <h3 class="category-name">{{ category.name }}</h3>
-                <p class="category-desc">{{ category.description }}</p>
-                <span class="song-count">{{ formatCount(category.count) }} 首</span>
-              </div>
-              <div class="play-button">
-                <el-icon><VideoPlay /></el-icon>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <!-- 所有分类 -->
-        <section class="section">
-          <div class="section-header">
-            <h2 class="section-title">所有分类</h2>
-          </div>
-          
-          <div class="all-categories-grid">
-            <div
-              v-for="category in otherCategories"
-              :key="category.id"
-              class="category-item"
-              @click="selectCategory(category)"
-            >
-              <div class="item-icon" :style="{ color: category.color }">
-                {{ category.icon }}
-              </div>
-              <div class="item-info">
-                <span class="item-name">{{ category.name }}</span>
-                <span class="item-count">{{ formatCount(category.count) }}</span>
-              </div>
-            </div>
-          </div>
-        </section>
-      </div>
-
-      <!-- 分类详情模式 -->
-      <div v-if="activeCategory" class="category-detail-mode">
+      <!-- 分类详情模式 - 直接显示，不再有条件判断 -->
+      <div class="category-detail-mode">
         <!-- 分类头部 -->
         <div class="category-header">
-          <el-button 
-            type="primary" 
-            link 
-            @click="goBackToCategories"
-            class="back-button"
-          >
-            <el-icon><ArrowLeft /></el-icon>
-            返回分类
-          </el-button>
-          
           <div class="header-content">
-            <div class="category-avatar" :style="{ backgroundColor: activeCategory.color }">
-              {{ activeCategory.icon }}
+            <div class="category-avatar" :style="{ backgroundColor: activeCategory?.color }">
+              {{ activeCategory?.icon }}
             </div>
             <div class="header-info">
-              <h1 class="category-title">{{ activeCategory.name }}</h1>
-              <p class="category-description">{{ activeCategory.description }}</p>
+              <h1 class="category-title">{{ activeCategory?.name }}</h1>
+              <p class="category-description">{{ activeCategory?.description }}</p>
               <div class="category-stats">
-                <span class="stat-item">{{ formatCount(activeCategory.count) }} 首歌曲</span>
+                <span class="stat-item">{{ formatCount(activeCategory?.count || 0) }} 首歌曲</span>
               </div>
             </div>
             <el-button type="primary" class="play-all-btn">
@@ -319,48 +161,62 @@ onMounted(() => {
           </div>
         </div>
 
-        <!-- 分类歌曲列表 -->
+        <!-- 分类导航栏 -->
+        <div class="category-nav">
+          <el-tabs v-model="activeCategoryName" type="card" @tab-click="handleCategoryChange">
+            <el-tab-pane 
+              v-for="category in musicCategories" 
+              :key="category.id" 
+              :label="category.name" 
+              :name="category.name"
+            >
+            </el-tab-pane>
+          </el-tabs>
+        </div>
+
+        <!-- 分类分享列表 -->
         <section class="section">
           <div class="section-header">
-            <h3 class="section-title">热门歌曲</h3>
+            <h3 class="section-title">热门分享</h3>
           </div>
           
-          <div class="songs-list">
+          <div class="shares-list">
             <div
-              v-for="(song, index) in categorySongs"
-              :key="song.id"
-              class="song-item"
-              @click="playMusic(song)"
+              v-for="(share, index) in categoryShares"
+              :key="share.id"
+              class="share-item"
+              @click="viewShare(share)"
             >
-              <div class="song-order">
+              <div class="share-order">
                 <span class="order-number">{{ index + 1 }}</span>
               </div>
               
-              <div class="song-cover">
-                <img :src="song.cover" :alt="song.name" />
+              <div class="share-cover">
+                <img :src="share.musicCover || 'https://p1.music.126.net/6y-UleORITEDbvrOLV0Q8A==/7942152268854681.jpg'" :alt="share.musicTitle" />
+                <div class="cover-overlay">
+                  <el-icon :size="20" class="play-icon"><VideoPlay /></el-icon>
+                </div>
               </div>
               
-              <div class="song-info">
-                <h4 class="song-title">{{ song.name }}</h4>
-                <p class="artist-name">{{ song.artist }}</p>
+              <div class="share-info">
+                <h4 class="share-title">{{ share.musicTitle }}</h4>
+                <p class="artist-name">{{ share.musicArtist }}</p>
+                <div class="user-line">
+                  <el-avatar :size="16" :src="share.user?.avatar || '/src/assets/default-avatar.png'" />
+                  <span class="user-name">{{ share.user?.nickname || '未知用户' }}</span>
+                </div>
+                <p class="share-content">{{ share.content }}</p>
               </div>
               
-              <div class="song-stats">
-                <span class="play-count">{{ formatCount(song.playCount) }} 播放</span>
-              </div>
-              
-              <div class="song-duration">{{ song.duration }}</div>
-              
-              <div class="song-actions">
-                <el-button 
-                  size="small" 
-                  :icon="Star" 
-                  :type="song.liked ? 'primary' : ''"
-                  @click.stop="toggleLike(song)"
-                  class="like-btn"
-                >
-                  {{ song.likeCount }}
-                </el-button>
+              <div class="share-stats">
+                <span class="stat-item">
+                  <el-icon><Headset /></el-icon>
+                  {{ formatCount(share.playCount || 0) }}
+                </span>
+                <span class="stat-item">
+                  <el-icon><Star /></el-icon>
+                  {{ formatCount(share.likedCount || 0) }}
+                </span>
               </div>
             </div>
           </div>
@@ -611,37 +467,82 @@ onMounted(() => {
 }
 
 .play-all-btn {
-  flex-shrink: 0;
+    flex-shrink: 0;
+  }
+
+/* 分类导航栏 */
+.category-nav {
+  margin-bottom: 24px;
+  background: white;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  border: 1px solid #f0f0f0;
 }
 
-/* 歌曲列表 */
-.songs-list {
+.category-nav :deep(.el-tabs__header) {
+  margin: 0;
+}
+
+.category-nav :deep(.el-tabs__nav-wrap) {
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.category-nav :deep(.el-tabs__nav) {
+  flex-wrap: nowrap;
+  gap: 8px;
+}
+
+.category-nav :deep(.el-tabs__item) {
+  white-space: nowrap;
+  padding: 8px 20px;
+  border-radius: 20px;
+  font-size: 14px;
+  transition: all 0.3s ease;
+}
+
+.category-nav :deep(.el-tabs__item.is-active) {
+  background-color: #667eea;
+  color: white;
+}
+
+.category-nav :deep(.el-tabs__item:hover) {
+  color: #667eea;
+}
+
+.category-nav :deep(.el-tabs__item.is-active:hover) {
+  color: white;
+}
+
+/* 分享列表 */
+.shares-list {
   display: flex;
   flex-direction: column;
   gap: 0;
 }
 
-.song-item {
+.share-item {
   display: grid;
-  grid-template-columns: 40px 50px 1fr 100px 80px 100px;
+  grid-template-columns: 40px 50px 1fr 120px;
   align-items: center;
   gap: 16px;
-  padding: 12px 16px;
+  padding: 16px;
   cursor: pointer;
   transition: background-color 0.3s ease;
   border-bottom: 1px solid #f8f9fa;
 }
 
-.song-item:last-child {
+.share-item:last-child {
   border-bottom: none;
 }
 
-.song-item:hover {
+.share-item:hover {
   background: #f8f9fa;
   border-radius: 6px;
 }
 
-.song-order {
+.share-order {
   text-align: center;
 }
 
@@ -651,55 +552,103 @@ onMounted(() => {
   color: #666;
 }
 
-.song-cover {
-  width: 40px;
-  height: 40px;
+.share-cover {
+  position: relative;
+  width: 50px;
+  height: 50px;
   border-radius: 6px;
   overflow: hidden;
   flex-shrink: 0;
 }
 
-.song-cover img {
+.share-cover img {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
-.song-info {
-  flex: 1;
+.cover-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.3s;
 }
 
-.song-title {
+.share-item:hover .cover-overlay {
+  opacity: 1;
+}
+
+.play-icon {
+  color: white;
+}
+
+.share-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.share-title {
   margin: 0 0 4px 0;
   font-size: 14px;
   font-weight: 500;
   color: #333;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .artist-name {
-  margin: 0;
+  margin: 0 0 4px 0;
   font-size: 12px;
   color: #666;
 }
 
-.song-stats {
-  font-size: 13px;
+.user-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.user-name {
+  font-size: 11px;
   color: #999;
-  text-align: center;
 }
 
-.song-duration {
-  font-size: 13px;
+.share-content {
+  font-size: 12px;
   color: #666;
-  text-align: center;
+  line-height: 1.4;
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
-.song-actions {
-  text-align: right;
+.share-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 12px;
+  color: #999;
 }
 
-.like-btn {
-  border-radius: 12px;
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.stat-item .el-icon {
+  font-size: 14px;
 }
 
 /* 响应式设计 */
@@ -731,14 +680,13 @@ onMounted(() => {
     gap: 16px;
   }
   
-  .song-item {
+  .share-item {
     grid-template-columns: 30px 40px 1fr auto;
     gap: 12px;
-    padding: 10px 12px;
+    padding: 12px;
   }
   
-  .song-stats,
-  .song-duration {
+  .share-stats {
     display: none;
   }
 }

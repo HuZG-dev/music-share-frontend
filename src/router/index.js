@@ -11,6 +11,7 @@ import ManageShare from '@/views/ManageShare.vue'
 import Settings from '@/views/Settings.vue'
 import ShareDetail from '@/views/ShareDetail.vue'
 import Recommendations from '@/views/Recommendations.vue'
+import SearchResult from '@/views/SearchResult.vue'
 
 const routes = [
   {
@@ -79,6 +80,11 @@ const routes = [
     path: '/share/:id',
     name: 'share-detail',
     component: ShareDetail
+  },
+  {
+    path: '/search',
+    name: 'search-result',
+    component: SearchResult
   }
 ]
 
