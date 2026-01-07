@@ -1,199 +1,195 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { VideoPlay, Star, Share, More, Plus } from '@element-plus/icons-vue'
+import { VideoPlay, Star, Share, More, Plus, Loading } from '@element-plus/icons-vue'
+import { getFollowings, getUserShares, likeShare, unlikeShare, checkLikeStatus, getTopUsers, followUser, unfollowUser, checkFollowStatus } from '@/api'
+import { ElMessage } from 'element-plus'
 
 const router = useRouter()
 
-// 关注用户数据
-const followedUsers = ref([
-  {
-    id: 1,
-    name: '音乐达人小张',
-    avatar: 'https://via.placeholder.com/60x60/667eea/ffffff',
-    bio: '专注分享好音乐，每天更新',
-    isFollowing: true,
-    followers: '12.3万',
-    shares: 456,
-    isOnline: true,
-    lastActive: '刚刚'
-  },
-  {
-    id: 2,
-    name: '旋律猎人',
-    avatar: 'https://via.placeholder.com/60x60/764ba2/ffffff',
-    bio: '寻找最美旋律的音乐探索者',
-    isFollowing: true,
-    followers: '8.7万',
-    shares: 321,
-    isOnline: false,
-    lastActive: '2小时前'
-  },
-  {
-    id: 3,
-    name: '节奏大师',
-    avatar: 'https://via.placeholder.com/60x60/f093fb/ffffff',
-    bio: '节奏感才是音乐的灵魂',
-    isFollowing: true,
-    followers: '6.5万',
-    shares: 234,
-    isOnline: true,
-    lastActive: '在线'
-  },
-  {
-    id: 4,
-    name: '和声之美',
-    avatar: 'https://via.placeholder.com/60x60/4ecdc4/ffffff',
-    bio: '专注于和声研究的音乐人',
-    isFollowing: true,
-    followers: '5.2万',
-    shares: 198,
-    isOnline: false,
-    lastActive: '1天前'
-  }
-])
-
 // 动态数据
-const userActivities = ref([
-  {
-    id: 1,
-    userId: 1,
-    userName: '音乐达人小张',
-    userAvatar: 'https://via.placeholder.com/40x40/667eea/ffffff',
-    type: 'share',
-    content: '分享了歌曲',
-    music: {
-      id: 1,
-      name: '晴天',
-      artist: '周杰伦',
-      cover: 'https://via.placeholder.com/80x80/667eea/ffffff',
-      duration: '04:30'
-    },
-    time: '2分钟前',
-    likes: 123,
-    comments: 45,
-    isLiked: false
-  },
-  {
-    id: 2,
-    userId: 2,
-    userName: '旋律猎人',
-    userAvatar: 'https://via.placeholder.com/40x40/764ba2/ffffff',
-    type: 'share',
-    content: '发现了一首宝藏歌曲',
-    music: {
-      id: 2,
-      name: '起风了',
-      artist: '买辣椒也用券',
-      cover: 'https://via.placeholder.com/80x80/764ba2/ffffff',
-      duration: '03:45'
-    },
-    time: '1小时前',
-    likes: 89,
-    comments: 23,
-    isLiked: true
-  },
-  {
-    id: 3,
-    userId: 3,
-    userName: '节奏大师',
-    userAvatar: 'https://via.placeholder.com/40x40/f093fb/ffffff',
-    type: 'like',
-    content: '点赞了歌曲',
-    music: {
-      id: 3,
-      name: '海底',
-      artist: '一支榴莲',
-      cover: 'https://via.placeholder.com/80x80/f093fb/ffffff',
-      duration: '03:20'
-    },
-    time: '3小时前',
-    likes: 67,
-    comments: 12,
-    isLiked: false
-  },
-  {
-    id: 4,
-    userId: 4,
-    userName: '和声之美',
-    userAvatar: 'https://via.placeholder.com/40x40/4ecdc4/ffffff',
-    type: 'share',
-    content: '推荐一首适合学习的轻音乐',
-    music: {
-      id: 4,
-      name: '星空',
-      artist: '纯音乐',
-      cover: 'https://via.placeholder.com/80x80/4ecdc4/ffffff',
-      duration: '05:15'
-    },
-    time: '5小时前',
-    likes: 156,
-    comments: 34,
-    isLiked: false
-  },
-  {
-    id: 5,
-    userId: 1,
-    userName: '音乐达人小张',
-    userAvatar: 'https://via.placeholder.com/40x40/667eea/ffffff',
-    type: 'share',
-    content: '今日推荐：经典老歌回顾',
-    music: {
-      id: 5,
-      name: '夜曲',
-      artist: '周杰伦',
-      cover: 'https://via.placeholder.com/80x80/667eea/ffffff',
-      duration: '04:20'
-    },
-    time: '1天前',
-    likes: 234,
-    comments: 67,
-    isLiked: true
-  }
-])
+const userActivities = ref([])
+const loading = ref(false)
 
 // 推荐用户数据
-const recommendedUsers = ref([
-  {
-    id: 5,
-    name: '电子音乐人',
-    avatar: 'https://via.placeholder.com/60x60/ff6b6b/ffffff',
-    bio: '电子音乐制作与分享',
-    isFollowing: false,
-    followers: '3.2万',
-    shares: 187,
-    isOnline: true
-  },
-  {
-    id: 6,
-    name: '民谣诗人',
-    avatar: 'https://via.placeholder.com/60x60/45b7d1/ffffff',
-    bio: '用音乐讲述故事',
-    isFollowing: false,
-    followers: '4.1万',
-    shares: 213,
-    isOnline: false
-  },
-  {
-    id: 7,
-    name: '古典乐迷',
-    avatar: 'https://via.placeholder.com/60x60/96ceb4/ffffff',
-    bio: '古典音乐爱好者',
-    isFollowing: false,
-    followers: '2.8万',
-    shares: 165,
-    isOnline: true
-  }
-])
+const recommendedUsers = ref([])
 
-// 方法
-const toggleFollow = (user) => {
-  user.isFollowing = !user.isFollowing
+// 加载热门用户
+const loadTopUsers = async () => {
+  try {
+    const users = await getTopUsers(5)
+    console.log('热门用户:', users)
+    
+    // 确保 users 是数组
+    if (!users || !Array.isArray(users) || users.length === 0) {
+      recommendedUsers.value = []
+      return
+    }
+    
+    // 检查关注状态
+    const usersWithStatus = []
+    for (const user of users) {
+      let isFollowing = false
+      try {
+        isFollowing = await checkFollowStatus(user.id) === true
+      } catch (e) {
+        // 未登录或其他错误
+      }
+      usersWithStatus.push({
+        id: user.id,
+        name: user.nickname || '用户',
+        avatar: user.avatar || 'https://via.placeholder.com/40',
+        bio: user.bio || '这个用户很懒，什么都没写~',
+        isFollowing: isFollowing
+      })
+    }
+    recommendedUsers.value = usersWithStatus
+  } catch (error) {
+    console.error('加载热门用户失败:', error)
+    recommendedUsers.value = []
+  }
 }
 
-const toggleLike = (activity) => {
-  activity.isLiked = !activity.isLiked
-  activity.likes += activity.isLiked ? 1 : -1
+// 关注/取消关注推荐用户
+const toggleFollow = async (user) => {
+  try {
+    if (user.isFollowing) {
+      const res = await unfollowUser(user.id)
+      if (res.code === 200) {
+        user.isFollowing = false
+        ElMessage.success('已取消关注')
+        // 刷新动态列表
+        loadFollowingActivities()
+      }
+    } else {
+      const res = await followUser(user.id)
+      if (res.code === 200) {
+        user.isFollowing = true
+        ElMessage.success('关注成功')
+        // 刷新动态列表
+        loadFollowingActivities()
+      }
+    }
+  } catch (error) {
+    console.error('关注操作失败:', error)
+    ElMessage.error('操作失败')
+  }
+}
+
+// 加载关注用户的动态
+const loadFollowingActivities = async () => {
+  loading.value = true
+  try {
+    // 1. 获取关注列表
+    const followings = await getFollowings()
+    console.log('关注列表:', followings)
+    
+    if (!followings || followings.length === 0) {
+      userActivities.value = []
+      return
+    }
+    
+    // 2. 获取每个关注用户的分享
+    const allActivities = []
+    for (const user of followings) {
+      try {
+        const shares = await getUserShares(user.id)
+        if (shares && shares.length > 0) {
+          for (const share of shares) {
+            // 检查点赞状态
+            let isLiked = false
+            try {
+              isLiked = await checkLikeStatus(share.id) === true
+            } catch (e) {
+              // 未登录或其他错误，默认未点赞
+            }
+            
+            allActivities.push({
+              id: share.id,
+              userId: user.id,
+              userName: user.nickname || '用户',
+              userAvatar: user.avatar || 'https://via.placeholder.com/40',
+              rawTime: share.createdAt,
+              time: formatTime(share.createdAt),
+              content: share.content || '',
+              music: {
+                id: share.musicId,
+                name: share.musicTitle || '未知歌曲',
+                artist: share.musicArtist || '未知艺人',
+                cover: share.musicCover || 'https://via.placeholder.com/60',
+                duration: formatDuration(share.duration || 0)
+              },
+              likes: share.likedCount || 0,
+              comments: share.commentCount || 0,
+              isLiked: isLiked
+            })
+          }
+        }
+      } catch (e) {
+        console.error(`获取用户 ${user.id} 的分享失败:`, e)
+      }
+    }
+    
+    // 3. 按时间排序，最新的在前面
+    allActivities.sort((a, b) => {
+      return new Date(b.rawTime) - new Date(a.rawTime)
+    })
+    
+    userActivities.value = allActivities
+    console.log('加载到的动态:', allActivities.length)
+  } catch (error) {
+    console.error('加载关注动态失败:', error)
+    ElMessage.error('加载失败，请重试')
+  } finally {
+    loading.value = false
+  }
+}
+
+// 格式化时间
+const formatTime = (timeString) => {
+  if (!timeString) return '刚刚'
+  const time = new Date(timeString)
+  const now = new Date()
+  const diff = now - time
+  
+  const minutes = Math.floor(diff / 60000)
+  const hours = Math.floor(diff / 3600000)
+  const days = Math.floor(diff / 86400000)
+  
+  if (minutes < 1) return '刚刚'
+  if (minutes < 60) return `${minutes}分钟前`
+  if (hours < 24) return `${hours}小时前`
+  if (days < 7) return `${days}天前`
+  return time.toLocaleDateString()
+}
+
+// 格式化时长
+const formatDuration = (seconds) => {
+  if (!seconds) return '0:00'
+  const mins = Math.floor(seconds / 60)
+  const secs = seconds % 60
+  return `${mins}:${secs.toString().padStart(2, '0')}`
+}
+
+// 点赞/取消点赞
+const toggleLike = async (activity) => {
+  try {
+    if (activity.isLiked) {
+      const res = await unlikeShare(activity.id)
+      if (res.code === 200) {
+        activity.isLiked = false
+        activity.likes--
+      }
+    } else {
+      const res = await likeShare(activity.id)
+      if (res.code === 200) {
+        activity.isLiked = true
+        activity.likes++
+      }
+    }
+  } catch (error) {
+    console.error('点赞操作失败:', error)
+  }
 }
 
 const playMusic = (music) => {
@@ -204,6 +200,10 @@ const viewUserProfile = (user) => {
   router.push(`/user/${user.id}`)
 }
 
+const goToShareDetail = (shareId) => {
+  router.push(`/share/${shareId}`)
+}
+
 const formatCount = (count) => {
   if (count >= 10000) {
     return (count / 10000).toFixed(1) + '万'
@@ -212,20 +212,13 @@ const formatCount = (count) => {
 }
 
 onMounted(() => {
-  // 初始化代码
+  loadFollowingActivities()
+  loadTopUsers()
 })
 </script>
 
 <template>
   <div class="follow-page">
-    <!-- 页面头部 -->
-    <div class="page-header">
-      <div class="header-content">
-        <h1 class="page-title">我的关注</h1>
-        <p class="page-subtitle">关注用户的最新动态和分享</p>
-      </div>
-    </div>
-
     <!-- 主要内容区域 -->
     <div class="main-content">
       <div class="content-container">
@@ -239,14 +232,26 @@ onMounted(() => {
                 <span class="activities-count">共 {{ userActivities.length }} 条动态</span>
               </div>
               
-              <div class="activities-list">
+              <!-- 加载中 -->
+              <div v-if="loading" class="loading-state">
+                <el-icon class="is-loading" :size="24"><Loading /></el-icon>
+                <span>加载中...</span>
+              </div>
+              
+              <!-- 空状态 -->
+              <div v-else-if="userActivities.length === 0" class="empty-state">
+                <p>还没有关注的用户动态</p>
+                <el-button type="primary" @click="router.push('/hot')">去发现更多</el-button>
+              </div>
+              
+              <div v-else class="activities-list">
                 <div
                   v-for="activity in userActivities"
                   :key="activity.id"
                   class="activity-item"
                 >
                   <div class="activity-header">
-                    <div class="user-info" @click="viewUserProfile(activity)">
+                    <div class="user-info" @click="router.push(`/user/${activity.userId}`)">
                       <el-avatar :size="40" :src="activity.userAvatar" />
                       <div class="user-details">
                         <h4 class="user-name">{{ activity.userName }}</h4>
@@ -256,10 +261,10 @@ onMounted(() => {
                     <el-button type="primary" link :icon="More" />
                   </div>
 
-                  <div class="activity-content">
+                  <div class="activity-content" @click="goToShareDetail(activity.id)">
                     <p class="activity-text">{{ activity.content }}</p>
                     
-                    <div class="music-card" @click="playMusic(activity.music)">
+                    <div class="music-card">
                       <div class="music-cover">
                         <img :src="activity.music.cover" :alt="activity.music.name" />
                         <div class="cover-overlay">
@@ -286,6 +291,7 @@ onMounted(() => {
                     <el-button 
                       :icon="Share"
                       class="action-btn"
+                      @click="goToShareDetail(activity.id)"
                     >
                       {{ formatCount(activity.comments) }}
                     </el-button>
@@ -304,13 +310,17 @@ onMounted(() => {
               <h4 class="section-title">推荐关注</h4>
             </div>
             
-            <div class="recommended-users">
+            <div v-if="recommendedUsers.length === 0" class="empty-recommend">
+              <p>暂无推荐用户</p>
+            </div>
+            
+            <div v-else class="recommended-users">
               <div
                 v-for="user in recommendedUsers"
                 :key="user.id"
                 class="recommended-user"
               >
-                <div class="user-main" @click="viewUserProfile(user)">
+                <div class="user-main" @click="router.push(`/user/${user.id}`)">
                   <el-avatar :size="40" :src="user.avatar" />
                   <div class="user-info">
                     <h5 class="user-name">{{ user.name }}</h5>
@@ -372,7 +382,7 @@ onMounted(() => {
 
 <style scoped>
 .follow-page {
-  background-color: #f8f9fa;
+  background-color: #fffdf8;
   min-height: 100vh;
 }
 
@@ -384,7 +394,7 @@ onMounted(() => {
 }
 
 .header-content {
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
   padding: 0 20px;
 }
@@ -404,7 +414,7 @@ onMounted(() => {
 
 /* 主要内容区域 */
 .main-content {
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
   padding: 24px 20px;
 }
@@ -442,6 +452,35 @@ onMounted(() => {
 .activities-count {
   font-size: 14px;
   color: #666;
+}
+
+/* 加载状态 */
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  color: #999;
+  gap: 12px;
+}
+
+/* 空状态 */
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: #999;
+}
+
+.empty-state p {
+  margin-bottom: 16px;
+  font-size: 16px;
+}
+
+.empty-recommend {
+  text-align: center;
+  padding: 20px;
+  color: #999;
 }
 
 /* 动态列表 */
@@ -509,14 +548,14 @@ onMounted(() => {
   display: flex;
   gap: 12px;
   padding: 12px;
-  background: #f8f9fa;
+  background: #fffdf8;
   border-radius: 8px;
   cursor: pointer;
   transition: background-color 0.3s ease;
 }
 
 .music-card:hover {
-  background: #e9ecef;
+  background: #f5ebe8;
 }
 
 .music-cover {
@@ -653,7 +692,7 @@ onMounted(() => {
 }
 
 .nav-item:hover {
-  background: #f8f9fa;
+  background: #fffdf8;
 }
 
 /* 响应式设计 */

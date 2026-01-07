@@ -1,5 +1,13 @@
 <template>
   <div class="share-detail-container">
+    <!-- 返回按钮 -->
+    <div class="back-button-wrapper">
+      <el-button @click="goBack" class="back-button">
+        <el-icon><ArrowLeft /></el-icon>
+        返回
+      </el-button>
+    </div>
+    
     <div class="share-content">
       <!-- 分享人信息 -->
       <div class="sharer-info">
@@ -7,6 +15,12 @@
         <div class="sharer-details">
           <h3>{{ shareDetail.userName }}</h3>
           <p class="share-time">{{ shareDetail.shareTime }}</p>
+        </div>
+        <div class="sharer-actions">
+          <el-button size="default" @click="goToUserProfile">主页</el-button>
+          <el-button size="default" type="primary" @click="handleFollow">
+            {{ isFollowing ? '已关注' : '关注' }}
+          </el-button>
         </div>
       </div>
 
@@ -85,14 +99,25 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
-import { Star, Collection, Share } from '@element-plus/icons-vue'
-import { fetchShareDetail } from '../api/index'
+import { useRoute, useRouter } from 'vue-router'
+import { Star, Collection, Share, ArrowLeft } from '@element-plus/icons-vue'
+import { fetchShareDetail, getComments, createComment, deleteComment, likeShare, unlikeShare, checkLikeStatus, collectShare, uncollectShare, checkCollectionStatus, followUser, unfollowUser, checkFollowStatus } from '../api/index'
 import { getMusicDetail, getMusicUrl } from '../api/netease'
 import Player from '../components/Player.vue'
 
 const route = useRoute()
+const router = useRouter()
 const shareId = ref(route.params.id)
+const isFollowing = ref(false)
+
+// 返回上一页
+const goBack = () => {
+  router.back()
+}
+
+// 评论列表数据
+const comments = ref([])
+const loadingComments = ref(false)
 
 // 分享详情数据
 const shareDetail = ref({
@@ -117,22 +142,40 @@ const shareDetail = ref({
 })
 
 // 喜欢功能
-const toggleLike = () => {
-  shareDetail.value.liked = !shareDetail.value.liked
-  if (shareDetail.value.liked) {
-    shareDetail.value.likedCount++
-  } else {
-    shareDetail.value.likedCount--
+const toggleLike = async () => {
+  try {
+    if (shareDetail.value.liked) {
+      // 取消点赞
+      await unlikeShare(shareId.value)
+      shareDetail.value.liked = false
+      shareDetail.value.likedCount--
+    } else {
+      // 点赞
+      await likeShare(shareId.value)
+      shareDetail.value.liked = true
+      shareDetail.value.likedCount++
+    }
+  } catch (error) {
+    console.error('点赞操作失败:', error)
+    alert('操作失败，请重试')
   }
 }
 
 // 收藏功能
-const toggleCollect = () => {
-  shareDetail.value.collected = !shareDetail.value.collected
-  if (shareDetail.value.collected) {
-    shareDetail.value.collectedCount++
-  } else {
-    shareDetail.value.collectedCount--
+const toggleCollect = async () => {
+  try {
+    if (shareDetail.value.collected) {
+      await uncollectShare(shareId.value)
+      shareDetail.value.collected = false
+      shareDetail.value.collectedCount--
+    } else {
+      await collectShare(shareId.value)
+      shareDetail.value.collected = true
+      shareDetail.value.collectedCount++
+    }
+  } catch (error) {
+    console.error('收藏操作失败:', error)
+    alert('操作失败，请重试')
   }
 }
 
@@ -142,46 +185,150 @@ const handleShare = () => {
   alert('转发功能开发中...')
 }
 
-// 模拟评论数据
-const comments = ref([
-  {
-    id: '1',
-    userName: '音乐爱好者',
-    userAvatar: '/src/assets/default-avatar.png',
-    commentTime: '1小时前',
-    content: '确实很好听，我也很喜欢这首歌！'
-  },
-  {
-    id: '2',
-    userName: '周杰伦粉丝',
-    userAvatar: '/src/assets/default-avatar.png',
-    commentTime: '30分钟前',
-    content: '周杰伦的经典之作，百听不厌！'
-  },
-  {
-    id: '3',
-    userName: '新用户',
-    userAvatar: '/src/assets/default-avatar.png',
-    commentTime: '10分钟前',
-    content: '第一次听，确实不错！'
+// 跳转到用户主页
+const goToUserProfile = () => {
+  if (shareDetail.value.userId) {
+    router.push(`/user/${shareDetail.value.userId}`)
   }
-])
+}
+
+// 关注/取消关注
+const handleFollow = async () => {
+  try {
+    if (isFollowing.value) {
+      const res = await unfollowUser(shareDetail.value.userId)
+      if (res.code === 200) {
+        isFollowing.value = false
+        alert('已取消关注')
+      } else {
+        alert(res.message || '取消关注失败')
+      }
+    } else {
+      const res = await followUser(shareDetail.value.userId)
+      if (res.code === 200) {
+        isFollowing.value = true
+        alert('关注成功')
+      } else {
+        alert(res.message || '关注失败')
+      }
+    }
+  } catch (error) {
+    console.error('关注操作失败:', error)
+    alert('操作失败，请重试')
+  }
+}
+
+// 检查关注状态
+const checkFollow = async () => {
+  if (shareDetail.value.userId) {
+    try {
+      const status = await checkFollowStatus(shareDetail.value.userId)
+      isFollowing.value = status === true
+    } catch (error) {
+      console.error('检查关注状态失败:', error)
+      isFollowing.value = false
+    }
+  }
+}
 
 // 新评论
 const newComment = ref('')
 
-// 提交评论
-const submitComment = () => {
-  if (newComment.value.trim()) {
-    const newCommentItem = {
-      id: Date.now().toString(),
-      userName: '当前用户',
-      userAvatar: '/src/assets/default-avatar.png',
-      commentTime: '刚刚',
-      content: newComment.value.trim()
+// 获取评论列表
+const loadComments = async () => {
+  if (!shareId.value) {
+    console.log('获取评论失败: shareId为空')
+    return
+  }
+  
+  loadingComments.value = true
+  try {
+    console.log('开始获取评论, shareId:', shareId.value)
+    const result = await getComments(shareId.value)
+    console.log('获取到的评论数据:', result)
+    
+    if (!result || !Array.isArray(result)) {
+      console.error('评论数据格式错误:', result)
+      comments.value = []
+      return
     }
-    comments.value.unshift(newCommentItem)
+    
+    comments.value = result.map(comment => ({
+      id: comment.id,
+      userName: comment.user.nickname,
+      userAvatar: comment.user.avatar || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32'%3E%3Crect fill='%23cccccc' width='32' height='32'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-size='16' fill='white'%3E用户%3C/text%3E%3C/svg%3E",
+      commentTime: formatCommentTime(comment.createdAt),
+      content: comment.content,
+      userId: comment.user.id,
+      parent: comment.parent
+    }))
+    console.log('转换后的评论数据:', comments.value)
+  } catch (error) {
+    console.error('获取评论失败:', error)
+    if (error.response) {
+      console.error('错误响应:', error.response.status, error.response.data)
+    }
+    comments.value = []
+  } finally {
+    loadingComments.value = false
+  }
+}
+
+// 格式化评论时间
+const formatCommentTime = (dateTime) => {
+  const now = new Date()
+  const commentDate = new Date(dateTime)
+  const diffMs = now - commentDate
+  const diffMins = Math.floor(diffMs / 60000)
+  const diffHours = Math.floor(diffMins / 60)
+  const diffDays = Math.floor(diffHours / 24)
+  
+  if (diffDays > 0) return `${diffDays}天前`
+  if (diffHours > 0) return `${diffHours}小时前`
+  if (diffMins > 0) return `${diffMins}分钟前`
+  return '刚刚'
+}
+
+// 提交评论
+const submitComment = async () => {
+  alert('函数被调用了')
+  console.log('===== submitComment 开始 =====', new Date())
+  
+  if (!newComment.value.trim()) {
+    console.log('评论内容为空')
+    alert('请输入评论内容')
+    return
+  }
+  
+  console.log('开始提交评论, shareId:', shareId.value, '内容:', newComment.value)
+  
+  try {
+    const result = await createComment(shareId.value, newComment.value.trim())
+    console.log('评论提交成功:', result)
     newComment.value = ''
+    // 重新加载评论列表
+    await loadComments()
+  } catch (error) {
+    console.error('发表评论失败:', error)
+    if (error.response) {
+      console.error('错误响应:', error.response.status, error.response.data)
+      alert(`发表评论失败: ${error.response.data.message || error.response.statusText}`)
+    } else {
+      alert('发表评论失败，请重试')
+    }
+  }
+}
+
+// 删除评论
+const handleDeleteComment = async (commentId) => {
+  if (!confirm('确定要删除这条评论吗？')) return
+  
+  try {
+    await deleteComment(commentId)
+    await loadComments()
+  } catch (error) {
+    console.error('删除评论失败:', error)
+    alert('删除失败，请重试')
   }
 }
 
@@ -203,6 +350,7 @@ const getShareDetail = async () => {
       let musicCover = 'https://via.placeholder.com/120x120/666666/ffffff?text=音乐封面'
       let musicAlbum = ''
       let musicUrl = '#'
+      let musicDuration = 0
       
       if (shareDataResponse.musicId) {
         console.log('开始获取音乐详情，musicId:', shareDataResponse.musicId)
@@ -215,6 +363,8 @@ const getShareDetail = async () => {
           if (musicDetail) {
             musicCover = musicDetail.pic || musicCover
             musicAlbum = musicDetail.album || ''
+            // duration是毫秒，转为秒
+            musicDuration = musicDetail.duration ? Math.floor(musicDetail.duration / 1000) : 0
           }
           
           // 获取音乐播放URL
@@ -258,15 +408,34 @@ const getShareDetail = async () => {
       // 更新分享详情数据
       console.log('准备更新shareDetail数据，音乐URL:', musicUrl)
       
+      // 检查点赞状态
+      let isLiked = false
+      try {
+        isLiked = await checkLikeStatus(shareId.value)
+        console.log('点赞状态:', isLiked)
+      } catch (error) {
+        console.error('检查点赞状态失败:', error)
+      }
+      
+      // 检查收藏状态
+      let isCollected = false
+      try {
+        isCollected = await checkCollectionStatus(shareId.value)
+        console.log('收藏状态:', isCollected)
+      } catch (error) {
+        console.error('检查收藏状态失败:', error)
+      }
+      
       shareDetail.value = {
         id: shareDataResponse.id,
+        userId: shareDataResponse.user?.id,
         userName: shareDataResponse.user?.nickname || '未知用户',
         userAvatar: shareDataResponse.user?.avatar || 'https://via.placeholder.com/32x32/cccccc/ffffff?text=用户',
         shareTime: formattedTime,
         content: shareDataResponse.content,
-        liked: false, // 默认未喜欢
+        liked: isLiked,
         likedCount: shareDataResponse.likedCount || 0,
-        collected: false, // 默认未收藏
+        collected: isCollected, // 使用真实收藏状态
         collectedCount: shareDataResponse.collectedCount || 0,
         sharedCount: shareDataResponse.sharedCount || 0,
         music: {
@@ -275,7 +444,8 @@ const getShareDetail = async () => {
           artist: shareDataResponse.musicArtist,
           album: musicAlbum,
           cover: musicCover,
-          url: musicUrl  // 使用获取到的真实URL
+          url: musicUrl,
+          duration: musicDuration
         }
       }
       
@@ -290,9 +460,13 @@ const getShareDetail = async () => {
   }
 }
 
-// 页面加载时获取分享详情
-onMounted(() => {
-  getShareDetail()
+// 页面加载时获取分享详情和评论
+onMounted(async () => {
+  console.log('ShareDetail页面已加载, shareId:', shareId.value)
+  await getShareDetail()
+  await loadComments()
+  await checkFollow()
+  console.log('ShareDetail页面初始化完成')
 })
 </script>
 
@@ -301,6 +475,21 @@ onMounted(() => {
   max-width: 800px;
   margin: 0 auto;
   padding: 20px;
+}
+
+/* 返回按钮样式 */
+.back-button-wrapper {
+  margin-bottom: 16px;
+}
+
+.back-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.back-button .el-icon {
+  font-size: 16px;
 }
 
 .share-content {
@@ -319,12 +508,19 @@ onMounted(() => {
 
 .sharer-details {
   margin-left: 16px;
+  flex: 1;
 }
 
 .sharer-details h3 {
   margin: 0;
   font-size: 18px;
   font-weight: 600;
+}
+
+.sharer-actions {
+  display: flex;
+  gap: 12px;
+  margin-left: auto;
 }
 
 .share-time {

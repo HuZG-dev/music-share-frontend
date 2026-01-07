@@ -202,7 +202,7 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #fffdf8;
   padding: 20px;
 }
 
@@ -243,7 +243,7 @@ onUnmounted(() => {
 }
 
 .user-card {
-  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  background: linear-gradient(135deg, #fffdf8 0%, #f5ebe8 100%);
   border-radius: 12px;
   padding: 24px;
   margin: 24px 0;
@@ -307,7 +307,7 @@ onUnmounted(() => {
 }
 
 .primary-btn {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #e07c5c 0%, #d06a4a 100%);
   color: white;
 }
 
@@ -318,12 +318,12 @@ onUnmounted(() => {
 
 .secondary-btn {
   background: transparent;
-  color: #667eea;
-  border: 1px solid #667eea;
+  color: #e07c5c;
+  border: 1px solid #e07c5c;
 }
 
 .secondary-btn:hover {
-  background: #f8f9fa;
+  background: #fffdf8;
   transform: translateY(-1px);
 }
 
@@ -349,7 +349,7 @@ onUnmounted(() => {
 }
 
 .login-links a {
-  color: #667eea;
+  color: #e07c5c;
   text-decoration: none;
   font-weight: 500;
 }

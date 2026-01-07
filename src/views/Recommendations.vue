@@ -31,7 +31,6 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 
 import { fetchAllShares } from '../api/index'
-import { getMusicDetail } from '../api/netease'
 import ShareCard from '../components/ShareCard.vue'
 
 // 路由实例
@@ -48,33 +47,35 @@ const fetchAllSharesData = async () => {
     const response = await fetchAllShares()
     // 处理API返回的数据结构
     const sharesData = response || []
-    if (sharesData.length > 0) {
-      // 将后端返回的数据转换为我们需要的格式，并获取真实封面
-      allShares.value = await Promise.all(sharesData.map(async (item) => {
-        let coverUrl = 'https://via.placeholder.com/80x80/666666/ffffff?text=音乐封面'
-        
-        // 尝试通过网易云音乐API获取真实封面
-        try {
-          const musicDetail = await getMusicDetail(item.musicId)
-          if (musicDetail && musicDetail.pic) {
-            coverUrl = musicDetail.pic
-          }
-        } catch (error) {
-          console.error(`获取音乐${item.musicId}封面失败:`, error)
+    
+    // 按创建时间倒序排列
+    const sortedShares = sharesData.sort((a, b) => {
+      return new Date(b.createdAt) - new Date(a.createdAt)
+    })
+    
+    if (sortedShares.length > 0) {
+      // 将后端返回的数据转换为我们需要的格式
+      allShares.value = sortedShares.map((item) => {
+        // 使用后端保存的musicDuration
+        let durationStr = '--:--'
+        if (item.musicDuration && item.musicDuration > 0) {
+          const minutes = Math.floor(item.musicDuration / 60)
+          const seconds = item.musicDuration % 60
+          durationStr = `${minutes}:${seconds.toString().padStart(2, '0')}`
         }
         
         return {
           id: item.id,
           musicName: item.musicTitle,
           artist: item.musicArtist,
-          cover: coverUrl,
+          cover: item.musicCover || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Crect fill='%2342b983' width='200' height='200'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-size='80' fill='white'%3E🎵%3C/text%3E%3C/svg%3E",
           userName: item.user?.nickname || '未知用户',
-          userAvatar: item.user?.avatar || 'https://via.placeholder.com/32x32/cccccc/ffffff?text=用户',
+          userAvatar: item.user?.avatar || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32'%3E%3Crect fill='%23cccccc' width='32' height='32'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-size='16' fill='white'%3E用户%3C/text%3E%3C/svg%3E",
           playCount: item.likedCount || 0,
-          duration: '未知时长',
+          duration: durationStr,
           musicId: item.musicId
         }
-      }))
+      })
     }
   } catch (error) {
     console.error('获取所有分享失败:', error)
@@ -96,7 +97,7 @@ onMounted(() => {
 
 <style scoped>
 .recommendations-page {
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
   padding: 20px;
   background-color: #f4f4f4;

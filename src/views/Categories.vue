@@ -1,10 +1,11 @@
 <script setup>
 import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { VideoPlay, Star } from '@element-plus/icons-vue'
 import { fetchAllShares } from '@/api'
 
 const router = useRouter()
+const route = useRoute()
 
 // 音乐分类数据
 const musicCategories = ref([
@@ -14,7 +15,7 @@ const musicCategories = ref([
     icon: '🎵',
     description: '最新最热的流行歌曲',
     cover: 'https://p1.music.126.net/6y-UleORITEDbvrOLV0Q8A==/7942152268854681.jpg',
-    color: '#667eea',
+    color: '#e07c5c',
     count: 12543
   },
   {
@@ -120,7 +121,16 @@ const formatCount = (count) => {
 }
 
 onMounted(() => {
-  // 默认选中第一个分类（流行）
+  // 检查 URL 参数是否有分类
+  const catParam = route.query.cat
+  if (catParam) {
+    const category = musicCategories.value.find(cat => cat.name === catParam)
+    if (category) {
+      selectCategory(category)
+      return
+    }
+  }
+  // 默认选中第一个分类
   if (musicCategories.value.length > 0) {
     selectCategory(musicCategories.value[0])
   }
@@ -129,14 +139,6 @@ onMounted(() => {
 
 <template>
   <div class="music-categories-page">
-    <!-- 页面头部 -->
-    <div class="page-header">
-      <div class="header-content">
-        <h1 class="page-title">音乐分类</h1>
-        <p class="page-subtitle">探索不同风格的音乐世界</p>
-      </div>
-    </div>
-
     <!-- 主要内容区域 -->
     <div class="main-content">
       <!-- 分类详情模式 - 直接显示，不再有条件判断 -->
@@ -150,14 +152,7 @@ onMounted(() => {
             <div class="header-info">
               <h1 class="category-title">{{ activeCategory?.name }}</h1>
               <p class="category-description">{{ activeCategory?.description }}</p>
-              <div class="category-stats">
-                <span class="stat-item">{{ formatCount(activeCategory?.count || 0) }} 首歌曲</span>
-              </div>
             </div>
-            <el-button type="primary" class="play-all-btn">
-              <el-icon><VideoPlay /></el-icon>
-              播放全部
-            </el-button>
           </div>
         </div>
 
@@ -228,7 +223,7 @@ onMounted(() => {
 
 <style scoped>
 .music-categories-page {
-  background-color: #f8f9fa;
+  background-color: #fffdf8;
   min-height: 100vh;
 }
 
@@ -240,7 +235,7 @@ onMounted(() => {
 }
 
 .header-content {
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
   padding: 0 20px;
   text-align: center;
@@ -261,7 +256,7 @@ onMounted(() => {
 
 /* 主要内容区域 */
 .main-content {
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
   padding: 30px 20px;
 }
@@ -306,7 +301,7 @@ onMounted(() => {
 }
 
 .hot-category-card:hover {
-  border-color: #667eea;
+  border-color: #e07c5c;
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.1);
   transform: translateY(-2px);
 }
@@ -350,16 +345,16 @@ onMounted(() => {
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: #f8f9fa;
+  background: #fffdf8;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #667eea;
+  color: #e07c5c;
   transition: all 0.3s ease;
 }
 
 .hot-category-card:hover .play-button {
-  background: #667eea;
+  background: #e07c5c;
   color: white;
 }
 
@@ -382,7 +377,7 @@ onMounted(() => {
 }
 
 .category-item:hover {
-  background: #f8f9fa;
+  background: #fffdf8;
   border-color: #e8e8e8;
 }
 
@@ -446,6 +441,8 @@ onMounted(() => {
 
 .header-info {
   flex: 1;
+  text-align: center;
+  padding-right: 100px; /* 补偿左侧图标宽度，让标题视觉居中 */
 }
 
 .category-title {
@@ -465,10 +462,6 @@ onMounted(() => {
   font-size: 13px;
   color: #999;
 }
-
-.play-all-btn {
-    flex-shrink: 0;
-  }
 
 /* 分类导航栏 */
 .category-nav {
@@ -503,12 +496,12 @@ onMounted(() => {
 }
 
 .category-nav :deep(.el-tabs__item.is-active) {
-  background-color: #667eea;
+  background-color: #e07c5c;
   color: white;
 }
 
 .category-nav :deep(.el-tabs__item:hover) {
-  color: #667eea;
+  color: #e07c5c;
 }
 
 .category-nav :deep(.el-tabs__item.is-active:hover) {
@@ -538,7 +531,7 @@ onMounted(() => {
 }
 
 .share-item:hover {
-  background: #f8f9fa;
+  background: #fffdf8;
   border-radius: 6px;
 }
 

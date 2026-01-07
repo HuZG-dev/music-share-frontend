@@ -13,15 +13,15 @@
           <!-- 关注、粉丝、获赞 -->
           <div class="stats">
             <div class="stat-item">
-              <span class="stat-number">51</span>
+              <span class="stat-number">{{ followingCount }}</span>
               <span class="stat-label">关注</span>
             </div>
             <div class="stat-item">
-              <span class="stat-number">66</span>
+              <span class="stat-number">{{ followerCount }}</span>
               <span class="stat-label">粉丝</span>
             </div>
             <div class="stat-item">
-              <span class="stat-number">208</span>
+              <span class="stat-number">{{ totalLikes }}</span>
               <span class="stat-label">获赞</span>
             </div>
           </div>
@@ -39,28 +39,35 @@
         :class="{ active: currentNav === 'works' }" 
         @click="switchNav('works')"
       >
-        作品 <span class="nav-count">{{ shares.length }}</span>
+        作品 <span v-if="currentNav === 'works'" class="nav-count">{{ shares.length }}</span>
       </div>
       <div 
         class="nav-item" 
         :class="{ active: currentNav === 'likes' }" 
         @click="switchNav('likes')"
       >
-        喜欢 <i class="el-icon-lock"></i>
+        喜欢 <span v-if="currentNav === 'likes'" class="nav-count">{{ likedShares.length }}</span>
       </div>
       <div 
         class="nav-item" 
         :class="{ active: currentNav === 'collections' }" 
         @click="switchNav('collections')"
       >
-        收藏 <i class="el-icon-lock"></i>
+        收藏 <span v-if="currentNav === 'collections'" class="nav-count">{{ collectedShares.length }}</span>
       </div>
       <div 
         class="nav-item" 
-        :class="{ active: currentNav === 'history' }" 
-        @click="switchNav('history')"
+        :class="{ active: currentNav === 'followings' }" 
+        @click="switchNav('followings')"
       >
-        观看历史 <i class="el-icon-lock"></i>
+        关注 <span v-if="currentNav === 'followings'" class="nav-count">{{ followings.length }}</span>
+      </div>
+      <div 
+        class="nav-item" 
+        :class="{ active: currentNav === 'followers' }" 
+        @click="switchNav('followers')"
+      >
+        粉丝 <span v-if="currentNav === 'followers'" class="nav-count">{{ followers.length }}</span>
       </div>
     </div>
 
@@ -290,6 +297,38 @@
           </div>
         </div>
       </div>
+      
+      <!-- 关注列表 -->
+      <div v-else-if="currentNav === 'followings'">
+        <div v-if="followings.length === 0" class="empty-works">
+          <i class="el-icon-user"></i>
+          <p>暂无关注的用户</p>
+        </div>
+        
+        <div v-else class="users-grid">
+          <div v-for="user in followings" :key="user.id" class="user-card" @click="goToUserProfile(user.id)">
+            <el-avatar :size="80" :src="user.avatar || 'https://via.placeholder.com/80'" />
+            <h3 class="user-nickname">{{ user.nickname }}</h3>
+            <p class="user-phone">{{ user.phone }}</p>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 粉丝列表 -->
+      <div v-else-if="currentNav === 'followers'">
+        <div v-if="followers.length === 0" class="empty-works">
+          <i class="el-icon-user"></i>
+          <p>暂无粉丝</p>
+        </div>
+        
+        <div v-else class="users-grid">
+          <div v-for="user in followers" :key="user.id" class="user-card" @click="goToUserProfile(user.id)">
+            <el-avatar :size="80" :src="user.avatar || 'https://via.placeholder.com/80'" />
+            <h3 class="user-nickname">{{ user.nickname }}</h3>
+            <p class="user-phone">{{ user.phone }}</p>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- 编辑资料对话框 -->
@@ -332,7 +371,7 @@ import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { storeToRefs } from 'pinia'
 import request from '@/api/request'
-import { fetchUserShares } from '@/api'
+import { fetchUserShares, getUserLikedShares, getUserCollectedShares, getFollowings, getFollowers, getFollowingCount, getFollowerCount } from '@/api'
 
 export default {
   name: 'ProfilePage',
@@ -354,7 +393,13 @@ export default {
     const shares = ref([])
     const likedShares = ref([])
     const collectedShares = ref([])
-    const historyShares = ref([])
+    const followings = ref([])
+    const followers = ref([])
+    
+    // 统计数据
+    const followingCount = ref(0)
+    const followerCount = ref(0)
+    const totalLikes = ref(0)
 
     const editForm = reactive({
       nickname: '',
@@ -363,9 +408,18 @@ export default {
     })
     
     // 切换导航
-    const switchNav = (navType) => {
+    const switchNav = async (navType) => {
       currentNav.value = navType
-      // 可以根据需要添加不同导航的数据加载逻辑
+      // 根据导航类型加载不同数据
+      if (navType === 'likes') {
+        await loadLikedShares()
+      } else if (navType === 'collections') {
+        await loadCollectedShares()
+      } else if (navType === 'followings') {
+        await loadFollowings()
+      } else if (navType === 'followers') {
+        await loadFollowers()
+      }
     }
 
     // 方法
@@ -486,7 +540,7 @@ export default {
             title: share.musicTitle,
             artist: share.musicArtist,
             album: share.musicAlbum,
-            cover: share.musicCover,
+            cover: share.musicCover || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Crect fill='%2342b983' width='200' height='200'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-size='80' fill='white'%3E🎵%3C/text%3E%3C/svg%3E",
             duration: 0,
             source: 'qqmusic'
           },
@@ -494,14 +548,123 @@ export default {
           tags: share.tags ? share.tags.split(',') : [],
           privacy: share.privacy || 'public',
           status: 'normal',
-          likes: share.likes || 0,
-          comments: share.comments || 0,
-          shares: share.shares || 0,
+          likes: share.likedCount || 0,
+          comments: 0,
+          shares: share.sharedCount || 0,
           createdAt: share.createdAt
         }))
       } catch (error) {
         console.error('加载分享失败:', error)
         ElMessage.error('加载分享失败')
+      }
+    }
+    
+    // 加载用户点赞的分享
+    const loadLikedShares = async () => {
+      try {
+        const likedSharesData = await getUserLikedShares()
+        
+        likedShares.value = likedSharesData.map(share => ({
+          id: share.id,
+          musicInfo: {
+            id: share.musicId,
+            title: share.musicTitle,
+            artist: share.musicArtist,
+            album: share.musicAlbum,
+            cover: share.musicCover || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Crect fill='%2342b983' width='200' height='200'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-size='80' fill='white'%3E🎵%3C/text%3E%3C/svg%3E",
+            duration: 0,
+            source: 'qqmusic'
+          },
+          content: share.content,
+          tags: share.tags ? share.tags.split(',') : [],
+          privacy: share.privacy || 'public',
+          status: 'normal',
+          likes: share.likedCount || 0,
+          comments: 0,
+          shares: share.sharedCount || 0,
+          createdAt: share.createdAt
+        }))
+      } catch (error) {
+        console.error('加载点赞分享失败:', error)
+        ElMessage.error('加载点赞分享失败')
+      }
+    }
+    
+    // 加载用户收藏的分享
+    const loadCollectedShares = async () => {
+      try {
+        const collectedSharesData = await getUserCollectedShares()
+        
+        collectedShares.value = collectedSharesData.map(share => ({
+          id: share.id,
+          musicInfo: {
+            id: share.musicId,
+            title: share.musicTitle,
+            artist: share.musicArtist,
+            album: share.musicAlbum,
+            cover: share.musicCover || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Crect fill='%2342b983' width='200' height='200'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-size='80' fill='white'%3E🎵%3C/text%3E%3C/svg%3E",
+            duration: 0,
+            source: 'qqmusic'
+          },
+          content: share.content,
+          tags: share.tags ? share.tags.split(',') : [],
+          privacy: share.privacy || 'public',
+          status: 'normal',
+          likes: share.likedCount || 0,
+          comments: 0,
+          shares: share.sharedCount || 0,
+          createdAt: share.createdAt
+        }))
+      } catch (error) {
+        console.error('加载收藏分享失败:', error)
+        ElMessage.error('加载收藏分享失败')
+      }
+    }
+    
+    // 加载关注列表
+    const loadFollowings = async () => {
+      try {
+        const followingsData = await getFollowings()
+        followings.value = followingsData
+      } catch (error) {
+        console.error('加载关注列表失败:', error)
+        ElMessage.error('加载关注列表失败')
+      }
+    }
+    
+    // 加载粉丝列表
+    const loadFollowers = async () => {
+      try {
+        const followersData = await getFollowers()
+        followers.value = followersData
+      } catch (error) {
+        console.error('加载粉丝列表失败:', error)
+        ElMessage.error('加载粉丝列表失败')
+      }
+    }
+    
+    // 跳转到用户主页
+    const goToUserProfile = (userId) => {
+      router.push(`/user/${userId}`)
+    }
+    
+    // 加载统计数据
+    const loadStats = async () => {
+      try {
+        // 获取关注数
+        const followingCountData = await getFollowingCount(userInfo.value.id)
+        followingCount.value = followingCountData
+        
+        // 获取粉丝数
+        const followerCountData = await getFollowerCount(userInfo.value.id)
+        followerCount.value = followerCountData
+        
+        // 计算总获赞数（从分享列表中统计）
+        if (shares.value.length > 0) {
+          totalLikes.value = shares.value.reduce((sum, share) => sum + (share.likes || 0), 0)
+        }
+      } catch (error) {
+        console.error('加载统计数据失败:', error)
       }
     }
 
@@ -528,6 +691,7 @@ export default {
 
     onMounted(async () => {
       await loadShares()
+      await loadStats()
       try {
         // 调用 API 获取用户信息
         // const response = await getUserInfo()
@@ -564,8 +728,13 @@ export default {
       shares,
       likedShares,
       collectedShares,
-      historyShares,
-      formatTime
+      followings,
+      followers,
+      followingCount,
+      followerCount,
+      totalLikes,
+      formatTime,
+      goToUserProfile
     }
   }
 }
@@ -610,7 +779,7 @@ export default {
   align-items: center;
   gap: 24px;
   padding: 0 16px;
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
   width: 100%;
 }
@@ -688,7 +857,7 @@ export default {
   border-bottom: 1px solid var(--border-color);
   overflow-x: auto;
   padding: 0 16px;
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
   width: 100%;
 }
@@ -730,7 +899,7 @@ export default {
 .works-container {
   padding: 16px;
   background-color: var(--bg-primary);
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
   width: 100%;
 }
@@ -967,6 +1136,43 @@ export default {
   background-color: var(--bg-secondary);
   border-radius: 50%;
   color: var(--text-secondary);
+}
+
+/* 用户卡片样式 */
+.users-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 20px;
+  padding: 20px 0;
+}
+
+.user-card {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 24px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.user-card:hover {
+  border-color: var(--accent-color);
+  transform: translateY(-4px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+}
+
+.user-nickname {
+  margin: 12px 0 4px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.user-phone {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin: 0;
 }
 
 /* 响应式设计 */

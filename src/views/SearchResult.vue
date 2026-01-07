@@ -37,7 +37,7 @@
             <div v-else-if="songResults.length === 0" class="empty-result">
               <el-empty description="暂无歌曲结果" />
             </div>
-            <div v-else>
+            <div v-else class="song-list-scroll">
               <div v-for="song in songResults" :key="song.id" class="song-item">
                 <div class="song-info">
                   <div class="song-cover">
@@ -46,12 +46,44 @@
                   <div class="song-details">
                     <h3 class="song-title">{{ song.name }}</h3>
                     <p class="song-artist">{{ song.artist }}</p>
-                    <p class="song-album">{{ song.album }}</p>
+                    <p class="song-album">{{ typeof song.album === 'object' ? song.album.name : song.album }}</p>
                   </div>
                 </div>
                 <div class="song-action">
-                  <el-button type="primary" size="small" @click="playSong(song)">
+                  <el-button type="primary" size="small" @click="playSong(song)" :loading="loadingMusicId === song.id">
                     <el-icon><VideoPlay /></el-icon> 播放
+                  </el-button>
+                </div>
+              </div>
+            </div>
+            
+            <!-- 音乐播放器 -->
+            <div v-if="currentPlayingMusic?.url" class="player-container">
+              <Player :music-info="currentPlayingMusic" :autoplay="true" />
+            </div>
+          </div>
+        </el-tab-pane>
+        <el-tab-pane label="用户" name="users">
+          <!-- 用户结果列表 -->
+          <div class="result-list">
+            <div v-if="loadingUsers" class="loading">
+              <el-skeleton :rows="5" animated />
+            </div>
+            <div v-else-if="userResults.length === 0" class="empty-result">
+              <el-empty description="暂无用户结果" />
+            </div>
+            <div v-else>
+              <div v-for="user in userResults" :key="user.id" class="user-item">
+                <div class="user-info">
+                  <el-avatar :size="50" :src="user.avatar || 'https://via.placeholder.com/50'" />
+                  <div class="user-details">
+                    <h3 class="user-nickname">{{ user.nickname }}</h3>
+                    <p class="user-phone">{{ user.phone }}</p>
+                  </div>
+                </div>
+                <div class="user-action">
+                  <el-button type="primary" size="small" @click="goToUserProfile(user.id)">
+                    查看主页
                   </el-button>
                 </div>
               </div>
@@ -64,13 +96,14 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElSkeleton, ElEmpty, ElButton, ElTabs, ElTabPane } from 'element-plus'
 import { VideoPlay } from '@element-plus/icons-vue'
 import ShareCard from '@/components/ShareCard.vue'
-import { searchMusic } from '@/api/netease.js'
-import { searchShares } from '@/api/index.js'
+import Player from '@/components/Player.vue'
+import { searchMusic, getMusicUrl } from '@/api/netease.js'
+import { searchShares, searchUsers } from '@/api/index.js'
 
 const route = useRoute()
 const router = useRouter()
@@ -89,20 +122,60 @@ const loadingShares = ref(false)
 const songResults = ref([])
 const loadingSongs = ref(false)
 
+// 用户结果
+const userResults = ref([])
+const loadingUsers = ref(false)
+
+// 播放相关
+const currentPlayingMusic = ref(null)
+const loadingMusicId = ref(null)
+
 // 标签切换处理
 const handleTabChange = (tabName) => {
   activeTab.value = tabName
 }
 
 // 播放歌曲
-const playSong = (song) => {
-  ElMessage.info(`播放歌曲: ${song.name} - ${song.artist}`)
-  // 这里可以添加实际播放逻辑
+const playSong = async (song) => {
+  try {
+    console.log('开始播放音乐:', song.name, '-', song.artist, 'ID:', song.id)
+    loadingMusicId.value = song.id
+    
+    // 获取音乐播放 URL
+    const musicWithUrl = await getMusicUrl(song.id)
+    
+    if (!musicWithUrl.url) {
+      ElMessage.error('无法获取音乐播放 URL')
+      return
+    }
+    
+    // 更新当前播放歌曲信息
+    currentPlayingMusic.value = {
+      id: song.id,
+      title: song.name,
+      artist: song.artist,
+      album: typeof song.album === 'object' ? song.album.name : song.album,
+      cover: song.pic || 'https://via.placeholder.com/64x64/42b983/ffffff?text=🎵',
+      url: musicWithUrl.url
+    }
+    
+    ElMessage.success(`开始播放: ${song.name}`)
+  } catch (error) {
+    console.error('播放音乐失败:', error)
+    ElMessage.error('播放失败，请重试')
+  } finally {
+    loadingMusicId.value = null
+  }
 }
 
 // 跳转到分享详情
 const goToShareDetail = (share) => {
   router.push(`/share/${share.id}`)
+}
+
+// 跳转到用户主页
+const goToUserProfile = (userId) => {
+  router.push(`/user/${userId}`)
 }
 
 // 搜索分享
@@ -112,99 +185,39 @@ const loadShareResults = async () => {
   loadingShares.value = true
   try {
     const results = await searchShares(keyword.value)
-    shareResults.value = results
+    console.log('后端返回的分享数据:', results)
     
-    // 如果API返回空结果，使用模拟数据
-    if (shareResults.value.length === 0) {
-      shareResults.value = [
-        {
-          id: 1,
-          title: '推荐一首好听的歌曲',
-          content: '这首歌真的很好听，推荐给大家！',
-          user: {
-            id: 1,
-            nickname: '用户1',
-            avatar: ''
-          },
-          music: {
-            id: 1,
-            name: '歌曲1',
-            artist: '歌手1',
-            album: '专辑1',
-            pic: ''
-          },
-          likes: 10,
-          comments: 5,
-          createdAt: '2023-10-01'
-        },
-        {
-          id: 2,
-          title: '分享我的歌单',
-          content: '这是我最近喜欢的歌单，希望大家喜欢！',
-          user: {
-            id: 2,
-            nickname: '用户2',
-            avatar: ''
-          },
-          music: {
-            id: 2,
-            name: '歌曲2',
-            artist: '歌手2',
-            album: '专辑2',
-            pic: ''
-          },
-          likes: 20,
-          comments: 10,
-          createdAt: '2023-10-02'
-        }
-      ]
-    }
+    // 按创建时间倒序排列
+    const sortedResults = results.sort((a, b) => {
+      return new Date(b.createdAt) - new Date(a.createdAt)
+    })
+    
+    // 转换数据格式以匹配ShareCard组件
+    shareResults.value = sortedResults.map(share => {
+      // 使用后端保存的musicDuration
+      let durationStr = '--:--' // 旧数据没有时长
+      if (share.musicDuration && share.musicDuration > 0) {
+        const minutes = Math.floor(share.musicDuration / 60)
+        const seconds = share.musicDuration % 60
+        durationStr = `${minutes}:${seconds.toString().padStart(2, '0')}`
+      }
+      
+      return {
+        id: share.id,
+        cover: share.musicCover || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Crect fill='%2342b983' width='200' height='200'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-size='80' fill='white'%3E🎵%3C/text%3E%3C/svg%3E",
+        musicName: share.musicTitle || '未知歌曲',
+        artist: share.musicArtist || '未知艺术家',
+        playCount: share.likedCount || 0,
+        duration: durationStr,
+        userAvatar: share.user?.avatar || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32'%3E%3Crect fill='%23cccccc' width='32' height='32'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-size='16' fill='white'%3E用户%3C/text%3E%3C/svg%3E",
+        userName: share.user?.nickname || '匿名用户',
+        musicId: share.musicId
+      }
+    })
   } catch (error) {
     console.error('搜索分享失败:', error)
     ElMessage.error('搜索分享失败，请重试')
-    // 发生错误时使用模拟数据
-    shareResults.value = [
-      {
-        id: 1,
-        title: '推荐一首好听的歌曲',
-        content: '这首歌真的很好听，推荐给大家！',
-        user: {
-          id: 1,
-          nickname: '用户1',
-          avatar: ''
-        },
-        music: {
-          id: 1,
-          name: '歌曲1',
-          artist: '歌手1',
-          album: '专辑1',
-          pic: ''
-        },
-        likes: 10,
-        comments: 5,
-        createdAt: '2023-10-01'
-      },
-      {
-        id: 2,
-        title: '分享我的歌单',
-        content: '这是我最近喜欢的歌单，希望大家喜欢！',
-        user: {
-          id: 2,
-          nickname: '用户2',
-          avatar: ''
-        },
-        music: {
-          id: 2,
-          name: '歌曲2',
-          artist: '歌手2',
-          album: '专辑2',
-          pic: ''
-        },
-        likes: 20,
-        comments: 10,
-        createdAt: '2023-10-02'
-      }
-    ]
+    shareResults.value = []
   } finally {
     loadingShares.value = false
   }
@@ -227,6 +240,23 @@ const loadSongResults = async () => {
   }
 }
 
+// 搜索用户
+const loadUserResults = async () => {
+  if (!keyword.value) return
+  
+  loadingUsers.value = true
+  try {
+    const results = await searchUsers(keyword.value)
+    userResults.value = results
+  } catch (error) {
+    console.error('搜索用户失败:', error)
+    ElMessage.error('搜索用户失败，请重试')
+    userResults.value = []
+  } finally {
+    loadingUsers.value = false
+  }
+}
+
 // 初始化搜索
 onMounted(() => {
   // 获取搜索关键词
@@ -236,16 +266,31 @@ onMounted(() => {
     // 加载搜索结果
     loadShareResults()
     loadSongResults()
+    loadUserResults()
   } else {
     // 如果没有关键词，返回首页
     router.push('/')
   }
 })
+
+// 监听路由查询参数变化
+watch(
+  () => route.query.keyword,
+  (newKeyword) => {
+    if (newKeyword) {
+      keyword.value = newKeyword
+      // 重新搜索
+      loadShareResults()
+      loadSongResults()
+      loadUserResults()
+    }
+  }
+)
 </script>
 
 <style scoped>
 .search-result-container {
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
   padding: 20px;
 }
@@ -272,8 +317,32 @@ onMounted(() => {
 
 .result-list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  grid-template-columns: 1fr;
   gap: 20px;
+}
+
+.song-list-scroll {
+  max-height: 500px;
+  overflow-y: auto;
+  padding-right: 8px;
+}
+
+.song-list-scroll::-webkit-scrollbar {
+  width: 8px;
+}
+
+.song-list-scroll::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.song-list-scroll::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+.song-list-scroll::-webkit-scrollbar-thumb:hover {
+  background: #555;
 }
 
 .song-item {
@@ -284,6 +353,7 @@ onMounted(() => {
   border-radius: 8px;
   background-color: #f5f7fa;
   transition: all 0.3s;
+  margin-bottom: 10px;
 }
 
 .song-item:hover {
@@ -311,7 +381,8 @@ onMounted(() => {
 }
 
 .song-details {
-  max-width: 300px;
+  flex: 1;
+  min-width: 0;
 }
 
 .song-title {
@@ -335,6 +406,58 @@ onMounted(() => {
 
 .song-action {
   margin-left: auto;
+}
+
+.user-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 15px;
+  border-radius: 8px;
+  background-color: #f5f7fa;
+  transition: all 0.3s;
+}
+
+.user-item:hover {
+  background-color: #e6f7ff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.user-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.user-nickname {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  margin: 0 0 5px 0;
+}
+
+.user-phone {
+  font-size: 14px;
+  color: #999;
+  margin: 0;
+}
+
+.user-action {
+  margin-left: auto;
+}
+
+.player-container {
+  margin-top: 24px;
+  padding: 20px;
+  background: #fffdf8;
+  border-radius: 8px;
+  width: 100%;
+  max-width: 100%;
 }
 
 .loading {

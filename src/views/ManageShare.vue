@@ -1,21 +1,5 @@
 <template>
   <div class="share-management-page">
-    <!-- 页面头部 -->
-    <div class="page-header">
-      <div class="header-content">
-        <h1 class="page-title">分享管理</h1>
-        <p class="page-subtitle">管理你发布的音乐分享</p>
-        <div class="header-actions">
-          <el-button type="primary" :icon="Plus" @click="goToCreateShare">
-            发布新分享
-          </el-button>
-          <el-button :type="checkingShares ? 'info' : 'warning'" :icon="checkingShares ? 'Loading' : 'Warning'" :disabled="checkingShares || shares.length === 0" @click="checkAllSharesAvailability">
-            {{ checkingShares ? `检查中(${checkProgress}%)` : '检查无效分享' }}
-          </el-button>
-        </div>
-      </div>
-    </div>
-
     <!-- 主要内容 -->
     <div class="main-content">
       <div class="content-container">
@@ -104,16 +88,6 @@
                 <el-option label="仅好友可见" value="friends" />
                 <el-option label="私密" value="private" />
               </el-select>
-
-              <el-select
-                v-model="filter.status"
-                placeholder="状态"
-                clearable
-                @change="handleFilterChange"
-              >
-                <el-option label="正常" value="normal" />
-                <el-option label="已删除" value="deleted" />
-              </el-select>
             </div>
             
             <div class="filter-right">
@@ -189,19 +163,18 @@
                   <span>{{ formatCount(share.likes) }}</span>
                 </div>
                 <div class="stat-item">
-                  <el-icon><ChatDotRound /></el-icon>
-                  <span>{{ formatCount(share.comments) }}</span>
+                  <el-icon><Collection /></el-icon>
+                  <span>{{ formatCount(share.collections) }}</span>
                 </div>
                 <div class="stat-item">
-                  <el-icon><Share /></el-icon>
-                  <span>{{ formatCount(share.shares) }}</span>
+                  <el-icon><ChatDotRound /></el-icon>
+                  <span>{{ formatCount(share.comments) }}</span>
                 </div>
               </div>
 
               <!-- 操作按钮 -->
               <div class="action-buttons">
                 <el-button
-                  v-if="share.status !== 'deleted'"
                   type="primary"
                   link
                   :icon="Edit"
@@ -210,47 +183,13 @@
                   编辑
                 </el-button>
                 
-                <el-dropdown v-if="share.status !== 'deleted'" trigger="click">
-                  <el-button type="primary" link :icon="More" />
-                  <template #dropdown>
-                    <el-dropdown-menu>
-                      <el-dropdown-item @click="handleChangePrivacy(share)">
-                        <el-icon><Setting /></el-icon>
-                        修改隐私
-                      </el-dropdown-item>
-                      <el-dropdown-item
-                        v-if="share.privacy !== 'public'"
-                        @click="handleMakePublic(share)"
-                      >
-                        <el-icon><View /></el-icon>
-                        设为公开
-                      </el-dropdown-item>
-                      <el-dropdown-item divided @click="handleDelete(share)">
-                        <el-icon><Delete /></el-icon>
-                        删除
-                      </el-dropdown-item>
-                    </el-dropdown-menu>
-                  </template>
-                </el-dropdown>
-
                 <el-button
-                  v-if="share.status === 'deleted'"
-                  type="primary"
-                  link
-                  :icon="Refresh"
-                  @click="handleRestore(share)"
-                >
-                  恢复
-                </el-button>
-                
-                <el-button
-                  v-if="share.status === 'deleted'"
                   type="danger"
                   link
                   :icon="Delete"
-                  @click="handlePermanentDelete(share)"
+                  @click="handleDelete(share)"
                 >
-                  永久删除
+                  删除
                 </el-button>
               </div>
             </div>
@@ -288,12 +227,39 @@
       width="600px"
       :before-close="handleCloseEditDialog"
     >
-      <share-editor
-        v-if="editDialogVisible"
-        :share="editingShare"
-        @save="handleSaveEdit"
-        @cancel="editDialogVisible = false"
-      />
+      <div v-if="editingShare" class="edit-dialog-content">
+        <el-form label-width="80px">
+          <el-form-item label="分享内容">
+            <el-input
+              v-model="editingShare.content"
+              type="textarea"
+              :rows="4"
+              placeholder="分享你对这首歌的感受..."
+            />
+          </el-form-item>
+          <el-form-item label="分类设置">
+            <el-select v-model="editCategory" placeholder="请选择分类">
+              <el-option
+                v-for="category in musicCategories"
+                :key="category"
+                :label="category"
+                :value="category"
+              />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="隐私设置">
+            <el-radio-group v-model="editingShare.privacy">
+              <el-radio value="public">公开</el-radio>
+              <el-radio value="friends">仅好友可见</el-radio>
+              <el-radio value="private">私密</el-radio>
+            </el-radio-group>
+          </el-form-item>
+        </el-form>
+      </div>
+      <template #footer>
+        <el-button @click="editDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="handleSaveEdit">保存</el-button>
+      </template>
     </el-dialog>
 
     <!-- 修改隐私对话框 -->
@@ -345,8 +311,8 @@
 import { ref, reactive, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
-import { fetchUserShares, deleteShare } from '@/api'
-import { Plus, Search, Refresh, Document, View, Star, ChatDotRound, VideoPlay, Clock, Warning, Share, Edit, More, Setting, Delete, User, Lock, Loading } from '@element-plus/icons-vue'
+import { fetchUserShares, deleteShare, updateShare } from '@/api'
+import { Plus, Search, Refresh, Document, View, Star, ChatDotRound, VideoPlay, Clock, Warning, Share, Edit, More, Setting, Delete, User, Lock, Loading, Collection } from '@element-plus/icons-vue'
 import { isMusicAvailable } from '@/api/netease'
 
 const router = useRouter()
@@ -363,8 +329,7 @@ const stats = reactive({
 // 筛选条件
 const filter = reactive({
   keyword: '',
-  privacy: '',
-  status: ''
+  privacy: ''
 })
 
 // 分页
@@ -378,8 +343,14 @@ const pagination = reactive({
 const editDialogVisible = ref(false)
 const privacyDialogVisible = ref(false)
 const editingShare = ref(null)
+const editCategory = ref('')
 const selectedPrivacy = ref('public')
 const currentShareId = ref(null)
+
+// 音乐分类
+const musicCategories = ref([
+  '流行', '民谣', 'R&B', '说唱', '摇滚', '轻音'
+])
 
 // 检查音乐可获取性相关状态
 const checkingShares = ref(false)
@@ -395,9 +366,8 @@ const filteredShares = computed(() => {
       share.musicInfo.artist.toLowerCase().includes(filter.keyword.toLowerCase())
     
     const matchesPrivacy = !filter.privacy || share.privacy === filter.privacy
-    const matchesStatus = !filter.status || share.status === filter.status
     
-    return matchesKeyword && matchesPrivacy && matchesStatus
+    return matchesKeyword && matchesPrivacy
   })
 })
 
@@ -526,10 +496,11 @@ const loadShares = async () => {
         source: 'qqmusic' // 默认来源
       },
       content: share.content,
-      tags: share.tags ? share.tags.split(',') : [],
+      tags: share.musicCategory ? [share.musicCategory] : [],
       privacy: share.privacy || 'public',
       status: 'normal', // 后端可能没有提供状态字段，默认为正常
-      likes: share.likes || 0,
+      likes: share.likedCount || 0,
+      collections: share.collectedCount || 0,
       comments: share.comments || 0,
       shares: share.shares || 0,
       createdAt: share.createdAt
@@ -569,26 +540,41 @@ const handleFilterChange = () => {
 const handleReset = () => {
   filter.keyword = ''
   filter.privacy = ''
-  filter.status = ''
   pagination.current = 1
   // 重新加载数据
 }
 
 const handleEdit = (share) => {
   editingShare.value = { ...share }
+  // 设置分类
+  editCategory.value = share.tags && share.tags.length > 0 ? share.tags[0] : ''
   editDialogVisible.value = true
 }
 
-const handleSaveEdit = async (updatedShare) => {
+const handleSaveEdit = async () => {
   try {
-    // 调用API更新分享
-    const index = shares.value.findIndex(s => s.id === updatedShare.id)
-    if (index !== -1) {
-      shares.value[index] = { ...shares.value[index], ...updatedShare }
+    const updateData = {
+      content: editingShare.value.content,
+      musicCategory: editCategory.value,
+      privacy: editingShare.value.privacy
     }
+    
+    // 调用API更新分享
+    await updateShare(editingShare.value.id, updateData)
+    
+    // 更新本地数据
+    const index = shares.value.findIndex(s => s.id === editingShare.value.id)
+    if (index !== -1) {
+      shares.value[index].content = editingShare.value.content
+      shares.value[index].tags = editCategory.value ? [editCategory.value] : []
+      shares.value[index].privacy = editingShare.value.privacy
+    }
+    
     editDialogVisible.value = false
+    updateStats()
     ElMessage.success('分享更新成功')
   } catch (error) {
+    console.error('更新分享失败:', error)
     ElMessage.error('更新失败')
   }
 }
@@ -605,11 +591,19 @@ const handleChangePrivacy = (share) => {
 
 const handleMakePublic = async (share) => {
   try {
+    const updateData = {
+      content: share.content,
+      musicCategory: share.tags.length > 0 ? share.tags[0] : '',
+      privacy: 'public'
+    }
+    
     // 调用API修改隐私设置
+    await updateShare(share.id, updateData)
     share.privacy = 'public'
     ElMessage.success('已设为公开')
     updateStats()
   } catch (error) {
+    console.error('修改隐私设置失败:', error)
     ElMessage.error('操作失败')
   }
 }
@@ -618,12 +612,21 @@ const handleConfirmPrivacy = async () => {
   try {
     const share = shares.value.find(s => s.id === currentShareId.value)
     if (share) {
+      const updateData = {
+        content: share.content,
+        musicCategory: share.tags.length > 0 ? share.tags[0] : '',
+        privacy: selectedPrivacy.value
+      }
+      
+      // 调用API更新隐私设置
+      await updateShare(share.id, updateData)
       share.privacy = selectedPrivacy.value
       ElMessage.success('隐私设置已更新')
       updateStats()
     }
     privacyDialogVisible.value = false
   } catch (error) {
+    console.error('更新隐私设置失败:', error)
     ElMessage.error('更新失败')
   }
 }
@@ -631,7 +634,7 @@ const handleConfirmPrivacy = async () => {
 const handleDelete = async (share) => {
   try {
     await ElMessageBox.confirm(
-      '确定要删除这条分享吗？删除后可以从回收站恢复。',
+      '确定要删除这条分享吗？',
       '确认删除',
       {
         confirmButtonText: '确定',
@@ -640,44 +643,22 @@ const handleDelete = async (share) => {
       }
     )
     
-    share.status = 'deleted'
-    ElMessage.success('分享已移至回收站')
-    updateStats()
-  } catch (error) {
-    // 用户取消删除
-  }
-}
-
-const handleRestore = async (share) => {
-  try {
-    share.status = 'normal'
-    ElMessage.success('分享已恢复')
-    updateStats()
-  } catch (error) {
-    ElMessage.error('恢复失败')
-  }
-}
-
-const handlePermanentDelete = async (share) => {
-  try {
-    await ElMessageBox.confirm(
-      '确定要永久删除这条分享吗？此操作不可恢复。',
-      '确认永久删除',
-      {
-        confirmButtonText: '永久删除',
-        cancelButtonText: '取消',
-        type: 'error'
-      }
-    )
+    // 调用API删除分享
+    await deleteShare(share.id)
     
+    // 从列表中移除
     const index = shares.value.findIndex(s => s.id === share.id)
     if (index !== -1) {
       shares.value.splice(index, 1)
     }
-    ElMessage.success('分享已永久删除')
+    
+    ElMessage.success('分享已删除')
     updateStats()
   } catch (error) {
-    // 用户取消删除
+    if (error !== 'cancel') {
+      console.error('删除分享失败:', error)
+      ElMessage.error('删除失败')
+    }
   }
 }
 
@@ -735,7 +716,7 @@ onMounted(() => {
 
 <style scoped>
 .share-management-page {
-  background-color: #f8f9fa;
+  background-color: #fffdf8;
   min-height: 100vh;
 }
 
@@ -747,7 +728,7 @@ onMounted(() => {
 }
 
 .header-content {
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
   padding: 0 20px;
   display: flex;
@@ -770,7 +751,7 @@ onMounted(() => {
 
 /* 主要内容 */
 .main-content {
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
   padding: 24px 20px;
 }
@@ -808,7 +789,7 @@ onMounted(() => {
 }
 
 .stat-icon.total {
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: linear-gradient(135deg, #e07c5c, #d06a4a);
 }
 
 .stat-icon.public {
@@ -898,7 +879,7 @@ onMounted(() => {
 
 .share-item.deleted {
   opacity: 0.6;
-  background: #fafafa;
+  background: #fffdf8;
 }
 
 /* 音乐信息 */
@@ -1035,9 +1016,9 @@ onMounted(() => {
 /* 操作按钮 */
 .action-buttons {
   display: flex;
-  flex-direction: column;
+  align-items: center;
   gap: 8px;
-  min-width: 100px;
+  min-width: 150px;
 }
 
 /* 隐私对话框 */
@@ -1055,7 +1036,7 @@ onMounted(() => {
 }
 
 .privacy-option:hover {
-  background: #f5f5f5;
+  background: #fffdf8;
 }
 
 .privacy-option .el-icon {

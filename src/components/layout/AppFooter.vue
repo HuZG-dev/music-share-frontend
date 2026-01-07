@@ -12,7 +12,7 @@
 
 <style scoped>
 .app-footer {
-  background-color: #f8f9fa;
+  background-color: #fffdf8;
   padding: 20px;
   text-align: center;
   border-top: 1px solid #e9ecef;
@@ -20,7 +20,7 @@
 }
 
 .footer-content {
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
 }
 

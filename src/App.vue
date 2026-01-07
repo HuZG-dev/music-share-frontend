@@ -20,16 +20,21 @@ import AppFooter from '@/components/layout/AppFooter.vue'
   box-sizing: border-box;
 }
 
+body {
+  background-color: #fffdf8;
+}
+
 #app {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  background-color: #fffdf8;
 }
 
 .app-main {
   flex: 1;
   padding: 20px;
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
   width: 100%;
 }

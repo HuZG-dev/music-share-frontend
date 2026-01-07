@@ -88,20 +88,21 @@
           <div class="ranking-card">
             <div class="card-header">
               <h4>热门排行</h4>
+              <span class="more-link" @click="router.push('/hot')">更多</span>
             </div>
             <div class="ranking-list">
               <div 
                 v-for="(share, index) in hotShares" 
                 :key="share.id" 
                 class="ranking-item"
-                @click="playMusic(share)"
+                @click="router.push(`/share/${share.id}`)"
               >
                 <span :class="['ranking-order', getRankClass(index)]">{{ index + 1 }}</span>
                 <div class="ranking-info">
-                  <h5 class="line-clamp-1">{{ share.musicName }}</h5>
-                  <p class="line-clamp-1">{{ share.artist }}</p>
+                  <h5 class="line-clamp-1">{{ share.musicTitle }}</h5>
+                  <p class="line-clamp-1">{{ share.musicArtist }}</p>
                 </div>
-                <span class="play-count">{{ formatCount(share.playCount) }}</span>
+                <span class="like-count"><el-icon><Star /></el-icon> {{ share.likedCount || 0 }}</span>
               </div>
             </div>
           </div>
@@ -116,8 +117,9 @@
                 v-for="category in categories" 
                 :key="category.id"
                 class="category-item"
-                @click="filterByCategory(category.id)"
+                @click="router.push(`/categories?cat=${category.name}`)"
               >
+                <span class="category-icon">{{ category.icon }}</span>
                 <span class="category-name">{{ category.name }}</span>
               </div>
             </div>
@@ -134,7 +136,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import {
-  VideoPlay, View, ArrowRight
+  VideoPlay, View, ArrowRight, Star
 } from '@element-plus/icons-vue'
 import { getBanners } from '../api/banner'
 import { getRecommendedPlaylists, getHotSongs, getMusicDetail, getMusicUrl } from '../api/netease'
@@ -177,144 +179,53 @@ const fetchBanners = async () => {
 }
 
 // 推荐分享数据
-const recommendedShares = ref([
-  {
-    id: 1,
-    musicName: '精选华语流行',
-    artist: '华语乐坛精选',
-    cover: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Crect fill='%2342b983' width='200' height='200'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-size='80' fill='white'%3E🎵%3C/text%3E%3C/svg%3E",
-    userName: '音乐精选官',
-    userAvatar: '/src/assets/default-avatar.png',
-    playCount: 1234567,
-    duration: '未知时长',
-    musicId: '1842728629',
-    url: ''
-  },
-  {
-    id: 2,
-    musicName: '经典英文老歌',
-    artist: '欧美经典',
-    cover: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Crect fill='%23764ba2' width='200' height='200'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-size='80' fill='white'%3E🎵%3C/text%3E%3C/svg%3E",
-    userName: '老歌回忆录',
-    userAvatar: '/src/assets/default-avatar.png',
-    playCount: 891234,
-    duration: '未知时长',
-    musicId: '1838868183',
-    url: ''
-  },
-  {
-    id: 3,
-    musicName: '热门电音派对',
-    artist: '电音狂欢',
-    cover: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Crect fill='%23f093fb' width='200' height='200'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-size='80' fill='white'%3E🎵%3C/text%3E%3C/svg%3E",
-    userName: '电音小助手',
-    userAvatar: '/src/assets/default-avatar.png',
-    playCount: 567890,
-    duration: '未知时长',
-    musicId: '1839237849',
-    url: ''
-  },
-  {
-    id: 4,
-    musicName: '治愈系轻音乐',
-    artist: '放松身心',
-    cover: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Crect fill='%234ecdc4' width='200' height='200'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-size='80' fill='white'%3E🎵%3C/text%3E%3C/svg%3E",
-    userName: '治愈系音乐',
-    userAvatar: '/src/assets/default-avatar.png',
-    playCount: 456789,
-    duration: '未知时长',
-    musicId: '1837654283',
-    url: ''
-  },
-  {
-    id: 5,
-    musicName: '摇滚经典合集',
-    artist: '摇滚传奇',
-    cover: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Crect fill='%23f7b801' width='200' height='200'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-size='80' fill='white'%3E🎵%3C/text%3E%3C/svg%3E",
-    userName: '摇滚不死',
-    userAvatar: '/src/assets/default-avatar.png',
-    playCount: 345678,
-    duration: '未知时长',
-    musicId: '1836723845',
-    url: ''
-  },
-  {
-    id: 6,
-    musicName: '中国风精选',
-    artist: '国韵飘香',
-    cover: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Crect fill='%239775fa' width='200' height='200'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-size='80' fill='white'%3E🎵%3C/text%3E%3C/svg%3E",
-    userName: '中国风音乐',
-    userAvatar: '/src/assets/default-avatar.png',
-    playCount: 234567,
-    duration: '未知时长',
-    musicId: '1835428937',
-    url: ''
-  }
-])
+const recommendedShares = ref([])
 
 // 获取推荐分享数据
 const fetchRecommendedShares = async () => {
   try {
-    console.log('开始获取推荐分享数据...')
-    const response = await fetchAllShares()
-    console.log('后端返回的原始数据:', response)
+    console.log('开始获取推荐分享...')
+    const shares = await fetchAllShares()
+    console.log('后端返回的分享数据:', shares)
+    console.log('第一条分享的musicDuration:', shares[0]?.musicDuration)
     
-    // 如果数据为空或数据不足，保持使用默认的模拟数据
-    if (!response || !Array.isArray(response) || response.length === 0) {
-      console.log('数据库为空，使用默认模拟数据')
-      return
-    }
+    // 按创建时间倒序排列，最新的在前面
+    const sortedShares = shares.sort((a, b) => {
+      return new Date(b.createdAt) - new Date(a.createdAt)
+    })
+    console.log('排序后的分享数据:', sortedShares.slice(0, 6).map(s => ({id: s.id, createdAt: s.createdAt, duration: s.musicDuration})))
     
-    // 确保只使用前6个数据
-    const limitedResponse = response.slice(0, 6)
-    console.log('处理的分享数据:', limitedResponse)
+    // 转换数据格式以匹配ShareCard组件
+    recommendedShares.value = sortedShares.slice(0, 6).map(share => {
+      console.log('处理分享ID:', share.id, 'musicDuration:', share.musicDuration)
+      // 使用后端保存的musicDuration
+      let durationStr = '--:--' // 旧数据没有时长
+      if (share.musicDuration && share.musicDuration > 0) {
+        const minutes = Math.floor(share.musicDuration / 60)
+        const seconds = share.musicDuration % 60
+        durationStr = `${minutes}:${seconds.toString().padStart(2, '0')}`
+        console.log('计算出的时长字符串:', durationStr)
+      } else {
+        console.log('分享', share.id, '没有musicDuration数据')
+      }
+      
+      return {
+        id: share.id,
+        cover: share.musicCover || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Crect fill='%2342b983' width='200' height='200'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-size='80' fill='white'%3E🎵%3C/text%3E%3C/svg%3E",
+        musicName: share.musicTitle || '未知歌曲',
+        artist: share.musicArtist || '未知艺术家',
+        playCount: share.likedCount || 0,
+        duration: durationStr,
+        userAvatar: share.user?.avatar || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32'%3E%3Crect fill='%23cccccc' width='32' height='32'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-size='16' fill='white'%3E用户%3C/text%3E%3C/svg%3E",
+        userName: share.user?.nickname || '匿名用户',
+        musicId: share.musicId
+      }
+    })
     
-    // 使用 Promise.all 批量获取音乐封面
-    const sharesWithCovers = await Promise.all(
-      limitedResponse.map(async (item) => {
-        let coverUrl = item.musicCover || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Crect fill='%2342b983' width='200' height='200'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-size='80' fill='white'%3E🎵%3C/text%3E%3C/svg%3E"
-        console.log(`处理分享 ${item.id}: ${item.musicTitle} - ${item.musicArtist}, musicId: ${item.musicId}`)
-        
-        // 如果有 musicId，通过网易云 API 获取封面
-        if (item.musicId) {
-          try {
-            console.log(`调用网易云 API 获取音乐 ${item.musicId} 详情...`)
-            const musicDetail = await getMusicDetail(String(item.musicId))
-            console.log(`网易云 API 返回结果:`, musicDetail)
-            
-            if (musicDetail && musicDetail.pic) {
-              coverUrl = musicDetail.pic
-              console.log(`获取到封面 URL: ${coverUrl}`)
-            } else {
-              console.log(`未获取到有效的封面 URL`)
-            }
-          } catch (error) {
-            console.error(`获取音乐 ${item.musicId} 封面失败:`, error)
-            // 失败时使用默认封面
-          }
-        } else {
-          console.log(`该分享没有 musicId`)
-        }
-        
-        return {
-          id: item.id,
-          musicName: item.musicTitle,
-          artist: item.musicArtist,
-          cover: coverUrl,
-          userName: item.user?.nickname || '未知用户',
-          userAvatar: item.user?.avatar || '/src/assets/default-avatar.png',
-          playCount: item.likedCount || 0,
-          duration: '未知时长',
-          musicId: item.musicId
-        }
-      })
-    )
-    
-    console.log('最终处理后的分享数据:', sharesWithCovers)
-    recommendedShares.value = sharesWithCovers
+    console.log('转换后的推荐分享数据:', recommendedShares.value)
   } catch (error) {
-    console.error('获取推荐分享失败，使用模拟数据:', error)
-    // 使用模拟数据，已经在上面定义
+    console.error('获取推荐分享失败:', error)
+    recommendedShares.value = []
   }
 }
 
@@ -357,103 +268,33 @@ const hotActivities = ref([
   }
 ])
 
-// 热门分享数据
-const hotShares = ref([
-  {
-    id: 1001,
-    musicName: '晴天',
-    artist: '周杰伦',
-    playCount: 9876543
-  },
-  {
-    id: 1002,
-    musicName: '起风了',
-    artist: '买辣椒也用券',
-    playCount: 8765432
-  },
-  {
-    id: 1003,
-    musicName: '孤勇者',
-    artist: '陈奕迅',
-    playCount: 7654321
-  },
-  {
-    id: 1004,
-    musicName: '光年之外',
-    artist: '邓紫棋',
-    playCount: 6543210
-  },
-  {
-    id: 1005,
-    musicName: '海阔天空',
-    artist: 'Beyond',
-    playCount: 5432109
-  },
-  {
-    id: 1006,
-    musicName: '夜曲',
-    artist: '周杰伦',
-    playCount: 4321098
-  },
-  {
-    id: 1007,
-    musicName: '平凡之路',
-    artist: '朴树',
-    playCount: 3210987
-  },
-  {
-    id: 1008,
-    musicName: '小幸运',
-    artist: '田馥甄',
-    playCount: 2109876
-  },
-  {
-    id: 1009,
-    musicName: '岁月神偷',
-    artist: '金玟岐',
-    playCount: 1098765
-  },
-  {
-    id: 1010,
-    musicName: '红色高跟鞋',
-    artist: '蔡健雅',
-    playCount: 987654
-  }
-])
+// 热门分享数据（按点赞数排序）
+const hotShares = ref([])
 
 // 获取热门分享数据
 const fetchHotShares = async () => {
   try {
-    const response = await getHotSongs(10)
-    if (response && Array.isArray(response)) {
-      // 确保只使用前10个数据
-      const limitedResponse = response.slice(0, 10)
-      // 将网易云音乐API返回的数据转换为我们需要的格式
-      hotShares.value = limitedResponse.map((item, index) => ({
-        id: index + 1001,
-        musicName: item.name,
-        artist: item.artist || '未知艺术家',
-        playCount: Math.floor(Math.random() * 10000000) + 5000000
-      }))
-    }
+    const shares = await fetchAllShares()
+    // 按点赞数排序，取前10
+    const sorted = [...shares].sort((a, b) => (b.likedCount || 0) - (a.likedCount || 0))
+    hotShares.value = sorted.slice(0, 10)
   } catch (error) {
-    console.error('获取热门分享失败，使用模拟数据:', error)
-    // 使用模拟数据，已经在上面定义
+    console.error('获取热门分享失败:', error)
   }
 }
 
 const categories = ref([
-  { id: 1, name: '流行' },
-  { id: 2, name: '摇滚' },
-  { id: 3, name: '民谣' },
-  { id: 4, name: '电子' },
-  { id: 5, name: '古典' },
-  { id: 6, name: '爵士' }
+  { id: 1, name: '流行', icon: '🎵' },
+  { id: 2, name: '民谣', icon: '🌿' },
+  { id: 3, name: 'R&B', icon: '🎶' },
+  { id: 4, name: '说唱', icon: '🎤' },
+  { id: 5, name: '摇滚', icon: '🎸' },
+  { id: 6, name: '轻音', icon: '🎼' }
 ])
 
-
-
-// 方法
+const filterByCategory = (categoryName) => {
+  router.push(`/categories?cat=${categoryName}`)
+}
 const playMusic = async (share) => {
   console.log('播放音乐:', share.musicName)
   console.log('分享数据:', share)
@@ -512,10 +353,6 @@ const formatCount = (count) => {
   return count.toString()
 }
 
-const filterByCategory = (categoryId) => {
-  console.log('筛选分类:', categoryId)
-}
-
 const viewMoreRecommendations = () => {
   console.log('查看更多推荐')
   // 这里可以跳转到更多推荐页面
@@ -545,7 +382,7 @@ onMounted(() => {
 
 <style scoped>
 .home {
-  background-color: #f4f4f4;
+  background-color: #fffdf8;
   min-height: 100vh;
 }
 
@@ -594,13 +431,13 @@ onMounted(() => {
 
 /* 主要内容区域 - 全宽度 */
 .main-content-wrapper {
-  background-color: #f4f4f4;
+  background-color: #fffdf8;
   width: 100%;
   padding: 20px 0;
 }
 
 .main-content {
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
   display: grid;
   grid-template-columns: 1fr 300px;
@@ -625,7 +462,7 @@ onMounted(() => {
 
 .more-button {
   font-size: 14px;
-  color: #42b983;
+  color: #e07c5c;
   padding: 0;
   height: auto;
 }
@@ -775,6 +612,9 @@ onMounted(() => {
 
 .card-header {
   margin-bottom: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .card-header h4 {
@@ -782,6 +622,16 @@ onMounted(() => {
   font-size: 16px;
   font-weight: 600;
   color: #333;
+}
+
+.more-link {
+  font-size: 13px;
+  color: #999;
+  cursor: pointer;
+}
+
+.more-link:hover {
+  color: #e07c5c;
 }
 
 /* 排行列表 */
@@ -802,14 +652,14 @@ onMounted(() => {
 }
 
 .ranking-item:hover {
-  background-color: #f8f9fa;
+  background-color: #fffdf8;
 }
 
 .ranking-order {
   width: 24px;
   height: 24px;
   border-radius: 4px;
-  background: #f0f0f0;
+  background: #f5ebe8;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -851,10 +701,13 @@ onMounted(() => {
   color: #666;
 }
 
-.play-count {
+.play-count, .like-count {
   font-size: 12px;
   color: #999;
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 2px;
 }
 
 /* 分类列表 */
@@ -865,17 +718,25 @@ onMounted(() => {
 }
 
 .category-item {
-  padding: 8px 12px;
-  background: #f8f9fa;
+  padding: 10px 12px;
+  background: #fffdf8;
   border-radius: 6px;
   cursor: pointer;
-  transition: all 0.3s;
+  transition: all 0.2s;
   text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
 }
 
 .category-item:hover {
-  background: #42b983;
+  background: #e07c5c;
   color: white;
+}
+
+.category-icon {
+  font-size: 16px;
 }
 
 .category-name {

@@ -1,83 +1,63 @@
 <template>
   <div class="hot-page">
-    <!-- 头部Banner -->
-    <div class="page-banner">
-      <div class="banner-content">
-        <h1 class="banner-title">🔥 热门分享</h1>
-        <p class="banner-desc">发现当下最受欢迎的音乐分享</p>
+    <!-- 页面头部 -->
+    <div class="page-header">
+      <h1 class="page-title">热门</h1>
+      <div class="filter-tabs">
+        <span 
+          v-for="filter in filters" 
+          :key="filter.value"
+          :class="['tab-item', { active: activeFilter === filter.value }]"
+          @click="switchFilter(filter.value)"
+        >
+          {{ filter.label }}
+        </span>
       </div>
     </div>
 
-    <!-- 主内容 -->
-    <div class="content-container">
-      <!-- 筛选栏 -->
-      <div class="filter-tabs">
-        <button 
-          v-for="filter in filters" 
-          :key="filter.value"
-          :class="['filter-tab', { active: activeFilter === filter.value }]"
-          @click="activeFilter = filter.value"
-        >
-          {{ filter.label }}
-        </button>
-      </div>
+    <!-- 分享列表 -->
+    <div class="share-list">
+      <div 
+        v-for="(item, index) in displayList" 
+        :key="item.id"
+        class="share-item"
+        @click="viewShare(item)"
+      >
+        <!-- 排名 -->
+        <div class="rank-num" :class="{ top: index < 3 }">
+          {{ index + 1 }}
+        </div>
 
-      <!-- 榜单列表 -->
-      <div class="share-list">
-        <div 
-          v-for="(item, index) in displayList" 
-          :key="item.id"
-          class="share-card"
-          @click="viewShare(item)"
-        >
-          <!-- 排名 -->
-          <div :class="['rank-badge', getRankClass(index)]">
-            {{ index + 1 }}
+        <!-- 封面 -->
+        <div class="cover">
+          <img :src="item.musicCover" :alt="item.musicTitle">
+          <div class="play-btn">
+            <el-icon><VideoPlay /></el-icon>
           </div>
+        </div>
 
-          <!-- 封面 -->
-          <div class="cover-wrapper">
-            <img :src="item.musicCover" :alt="item.musicTitle" class="cover-img">
-            <div class="cover-overlay">
-              <el-icon :size="32" class="play-icon"><VideoPlay /></el-icon>
-            </div>
-          </div>
-
-          <!-- 信息 -->
-          <div class="share-info">
-            <h3 class="music-name">{{ item.musicTitle }}</h3>
-            <p class="artist-name">{{ item.musicArtist }}</p>
-            <div class="user-line">
-              <el-avatar :size="20" :src="item.user?.avatar || '/src/assets/default-avatar.png'" />
-              <span class="user-name">{{ item.user?.nickname || '未知用户' }}</span>
-            </div>
-            <p class="share-content">{{ item.content }}</p>
-          </div>
-
-          <!-- 统计 -->
-          <div class="stats-area">
-            <span class="stat-item">
-              <el-icon><Headset /></el-icon>
-              {{ formatCount(item.playCount || 0) }}
+        <!-- 信息 -->
+        <div class="info">
+          <div class="title">{{ item.musicTitle }}</div>
+          <div class="artist">{{ item.musicArtist }}</div>
+          <div class="meta">
+            <span class="user">
+              <el-avatar :size="18" :src="item.user?.avatar" />
+              {{ item.user?.nickname || '匿名' }}
             </span>
-            <span class="stat-item">
-              <el-icon><Star /></el-icon>
-              {{ formatCount(item.likedCount || 0) }}
-            </span>
+            <span class="dot">·</span>
+            <span class="stat"><el-icon><Star /></el-icon> {{ item.likedCount || 0 }}</span>
           </div>
         </div>
       </div>
 
       <!-- 加载更多 -->
-      <div class="load-more-section" v-if="hasMore">
-        <el-button 
-          :loading="loading" 
-          @click="loadMore"
-          round
-          size="large"
-        >
-          {{ loading ? '加载中...' : '加载更多' }}
-        </el-button>
+      <div class="load-more" v-if="hasMore" @click="loadMore">
+        {{ loading ? '加载中...' : '加载更多' }}
+      </div>
+      
+      <div class="no-more" v-else-if="displayList.length > 0">
+        已经到底了
       </div>
     </div>
   </div>
@@ -86,7 +66,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { VideoPlay, Headset, Star } from '@element-plus/icons-vue'
+import { VideoPlay, Star } from '@element-plus/icons-vue'
 import { fetchAllShares } from '@/api'
 
 const router = useRouter()
@@ -100,12 +80,40 @@ const filters = [
 
 const activeFilter = ref('hot')
 const loading = ref(false)
-const hasMore = ref(true)
+const pageSize = 10
+const currentPage = ref(1)
 
 // 分享数据
 const shareData = ref([])
 
-const displayList = computed(() => shareData.value)
+const sortedList = computed(() => {
+  let sortedData = [...shareData.value]
+  
+  switch (activeFilter.value) {
+    case 'hot':
+      // 按点赞数排序（降序）
+      sortedData.sort((a, b) => (b.likedCount || 0) - (a.likedCount || 0))
+      break
+    case 'new':
+      // 按时间排序（降序）
+      sortedData.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+      break
+    case 'featured':
+      // 按收藏数排序（降序）
+      sortedData.sort((a, b) => (b.collectedCount || 0) - (a.collectedCount || 0))
+      break
+  }
+  
+  return sortedData
+})
+
+const displayList = computed(() => {
+  return sortedList.value.slice(0, currentPage.value * pageSize)
+})
+
+const hasMore = computed(() => {
+  return displayList.value.length < sortedList.value.length
+})
 
 // 获取分享数据
 const fetchShares = async () => {
@@ -123,10 +131,7 @@ const fetchShares = async () => {
 }
 
 const getRankClass = (index) => {
-  if (index === 0) return 'gold'
-  if (index === 1) return 'silver'
-  if (index === 2) return 'bronze'
-  return ''
+  return index < 3 ? 'top' : ''
 }
 
 const formatCount = (count) => {
@@ -139,11 +144,12 @@ const viewShare = (item) => {
 }
 
 const loadMore = () => {
-  loading.value = true
-  setTimeout(() => {
-    loading.value = false
-    hasMore.value = false
-  }, 1000)
+  currentPage.value++
+}
+
+const switchFilter = (filterValue) => {
+  activeFilter.value = filterValue
+  currentPage.value = 1 // 切换筛选时重置页码
 }
 
 onMounted(() => {
@@ -153,296 +159,196 @@ onMounted(() => {
 
 <style scoped>
 .hot-page {
-  min-height: 100vh;
-  background: linear-gradient(to bottom, #f8f9fa 0%, #fff 100%);
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 20px;
 }
 
-/* Banner */
-.page-banner {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 80px 20px;
-  text-align: center;
-  color: white;
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #eee;
 }
 
-.banner-title {
-  font-size: 48px;
-  font-weight: 800;
-  margin: 0 0 16px 0;
-  text-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.banner-desc {
-  font-size: 18px;
+.page-title {
+  font-size: 22px;
+  font-weight: 600;
   margin: 0;
-  opacity: 0.9;
+  color: #333;
 }
 
-/* 主内容 */
-.content-container {
-  max-width: 1000px;
-  margin: -40px auto 0;
-  padding: 0 20px 60px;
-}
-
-/* 筛选标签 */
 .filter-tabs {
   display: flex;
-  gap: 12px;
-  margin-bottom: 32px;
-  background: white;
-  padding: 8px;
-  border-radius: 16px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+  gap: 24px;
 }
 
-.filter-tab {
-  flex: 1;
-  padding: 12px 24px;
-  border: none;
-  background: transparent;
-  border-radius: 12px;
-  font-size: 16px;
-  font-weight: 600;
-  color: #666;
+.tab-item {
+  font-size: 14px;
+  color: #999;
   cursor: pointer;
-  transition: all 0.3s;
+  padding: 4px 0;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s;
 }
 
-.filter-tab:hover {
-  background: #f8f9fa;
-  color: #667eea;
+.tab-item:hover {
+  color: #666;
 }
 
-.filter-tab.active {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+.tab-item.active {
+  color: #333;
+  font-weight: 500;
+  border-bottom-color: #333;
 }
 
-/* 榜单列表 */
 .share-list {
   display: flex;
   flex-direction: column;
-  gap: 16px;
 }
 
-.share-card {
-  background: white;
-  border-radius: 16px;
-  padding: 20px;
-  display: flex;
-  align-items: flex-start;
-  gap: 20px;
-  cursor: pointer;
-  transition: all 0.3s;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-}
-
-.share-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
-}
-
-/* 排名徽章 */
-.rank-badge {
-  width: 48px;
-  height: 48px;
+.share-item {
   display: flex;
   align-items: center;
-  justify-content: center;
-  font-size: 20px;
-  font-weight: 800;
-  color: #999;
-  background: #f5f5f5;
-  border-radius: 12px;
+  gap: 16px;
+  padding: 16px 0;
+  border-bottom: 1px solid #f5f5f5;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.share-item:hover {
+  background: #fffdf8;
+  margin: 0 -12px;
+  padding: 16px 12px;
+}
+
+.rank-num {
+  width: 24px;
+  font-size: 16px;
+  font-weight: 500;
+  color: #bbb;
+  text-align: center;
   flex-shrink: 0;
 }
 
-.rank-badge.gold {
-  background: linear-gradient(135deg, #FFD700, #FFA500);
-  color: white;
-  box-shadow: 0 4px 12px rgba(255, 215, 0, 0.4);
+.rank-num.top {
+  color: #ff6b6b;
+  font-weight: 700;
 }
 
-.rank-badge.silver {
-  background: linear-gradient(135deg, #C0C0C0, #A8A8A8);
-  color: white;
-  box-shadow: 0 4px 12px rgba(192, 192, 192, 0.4);
-}
-
-.rank-badge.bronze {
-  background: linear-gradient(135deg, #CD7F32, #B8713A);
-  color: white;
-  box-shadow: 0 4px 12px rgba(205, 127, 50, 0.4);
-}
-
-/* 封面 */
-.cover-wrapper {
+.cover {
   position: relative;
-  width: 80px;
-  height: 80px;
-  border-radius: 12px;
+  width: 56px;
+  height: 56px;
+  border-radius: 8px;
   overflow: hidden;
   flex-shrink: 0;
 }
 
-.cover-img {
+.cover img {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
-.cover-overlay {
+.cover .play-btn {
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0,0,0,0.5);
+  inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
+  background: rgba(0,0,0,0.4);
   opacity: 0;
-  transition: opacity 0.3s;
+  transition: opacity 0.2s;
+  color: #fff;
+  font-size: 20px;
 }
 
-.share-card:hover .cover-overlay {
+.share-item:hover .play-btn {
   opacity: 1;
 }
 
-.play-icon {
-  color: white;
-}
-
-/* 分享信息 */
-.share-info {
+.info {
   flex: 1;
   min-width: 0;
 }
 
-.music-name {
-  font-size: 18px;
-  font-weight: 700;
+.info .title {
+  font-size: 15px;
+  font-weight: 500;
   color: #333;
-  margin: 0 0 8px 0;
+  margin-bottom: 4px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.artist-name {
-  font-size: 14px;
+.info .artist {
+  font-size: 13px;
   color: #999;
-  margin: 0 0 12px 0;
+  margin-bottom: 6px;
 }
 
-.user-line {
+.info .meta {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 12px;
+  font-size: 12px;
+  color: #bbb;
 }
 
-.user-name {
-  font-size: 13px;
-  color: #666;
-}
-
-.share-content {
-  font-size: 14px;
-  color: #666;
-  line-height: 1.6;
-  margin: 0;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.stats-area {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  align-items: flex-end;
-}
-
-.stat-item {
+.info .user {
   display: flex;
   align-items: center;
   gap: 4px;
-  font-size: 13px;
-  color: #666;
 }
 
-.stat-item .el-icon {
-  font-size: 16px;
-}
-
-/* 趋势徽章 */
-.trend-badge {
-  width: 60px;
-  height: 32px;
+.info .stat {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 4px;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 600;
-  flex-shrink: 0;
+  gap: 2px;
 }
 
-.trend-badge.up {
-  background: #fff1f0;
-  color: #ff4d4f;
+.dot {
+  color: #ddd;
 }
 
-.trend-badge.down {
-  background: #f6ffed;
-  color: #52c41a;
-}
-
-.trend-badge.stable {
-  background: #f5f5f5;
-  color: #999;
-}
-
-/* 加载更多 */
-.load-more-section {
+.load-more {
   text-align: center;
-  margin-top: 40px;
+  padding: 24px;
+  color: #999;
+  font-size: 14px;
+  cursor: pointer;
 }
 
-/* 响应式 */
-@media (max-width: 768px) {
-  .banner-title {
-    font-size: 32px;
+.load-more:hover {
+  color: #666;
+}
+
+.no-more {
+  text-align: center;
+  padding: 24px;
+  color: #ccc;
+  font-size: 13px;
+}
+
+@media (max-width: 640px) {
+  .hot-page {
+    padding: 16px;
   }
   
-  .share-card {
-    flex-wrap: wrap;
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
   }
   
-  .rank-badge {
-    width: 40px;
-    height: 40px;
-    font-size: 16px;
-  }
-  
-  .cover-wrapper {
-    width: 60px;
-    height: 60px;
-  }
-  
-  .music-name {
-    font-size: 16px;
-  }
-  
-  .stats-area {
-    flex-direction: row;
-    justify-content: flex-start;
-    width: 100%;
+  .cover {
+    width: 48px;
+    height: 48px;
   }
 }
 </style>

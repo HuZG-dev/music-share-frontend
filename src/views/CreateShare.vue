@@ -1,13 +1,5 @@
 <template>
   <div class="share-create-page">
-    <!-- 页面头部 -->
-    <div class="page-header">
-      <div class="header-content">
-        <h1 class="page-title">发布分享</h1>
-        <p class="page-subtitle">发现好音乐，分享你的感受</p>
-      </div>
-    </div>
-
     <!-- 主要内容 -->
     <div class="main-content">
       <div class="content-container">
@@ -118,7 +110,7 @@
             <!-- 分类选择 -->
             <div class="category-selector">
               <div class="section-title">
-                选择分类
+                分类设置
                 <span class="sub-title">（必选）</span>
               </div>
               <div class="category-container">
@@ -210,7 +202,7 @@
               <div class="guide-item">
                 <div class="guide-icon">🏷️</div>
                 <div class="guide-text">
-                  <strong>选择分类</strong>
+                  <strong>分类设置</strong>
                   <p>选择合适的分类让更多人发现你的分享</p>
                 </div>
               </div>
@@ -275,7 +267,7 @@ import { searchMusic, getMusicUrl } from '../api/netease.js'
 // 导入播放器组件
 import Player from '../components/Player.vue'
 // 导入创建分享API
-import { createShare } from '../api/index.js'
+import { createShare, fetchUserShares } from '../api/index.js'
 
 const router = useRouter()
 
@@ -299,23 +291,8 @@ const musicCategories = ref([
   '流行', '民谣', 'R&B', '说唱', '摇滚', '轻音'
 ])
 
-// 最近分享（模拟数据）
-const recentShares = ref([
-  {
-    id: 1,
-    musicTitle: '晴天',
-    musicArtist: '周杰伦',
-    musicCover: 'https://p1.music.126.net/6y-UleORITEDbvrOLV0Q8A==/7942152268854681.jpg',
-    time: '2小时前'
-  },
-  {
-    id: 2,
-    musicTitle: '起风了',
-    musicArtist: '买辣椒也用券',
-    musicCover: 'https://p2.music.126.net/8oW1h4T586uL9I08lJqgMg==/109951164239389148.jpg',
-    time: '1天前'
-  }
-])
+// 最近分享
+const recentShares = ref([])
 
 // 计算属性：是否可以发布
 const canPublish = computed(() => {
@@ -437,6 +414,7 @@ const handlePublish = async () => {
   publishing.value = true
 
   try {
+    console.log('selectedMusic.value.duration:', selectedMusic.value.duration)
     // 构建分享数据
     const shareData = {
       musicId: selectedMusic.value.id,
@@ -444,12 +422,14 @@ const handlePublish = async () => {
       musicArtist: selectedMusic.value.artist,
       musicAlbum: selectedMusic.value.album,
       musicCover: selectedMusic.value.cover,
+      musicDuration: selectedMusic.value.duration || 0, // 添加时长字段
       content: shareContent.value.trim(),
       musicCategory: selectedCategory.value,
       privacy: privacy.value
     }
     
     console.log('发布分享数据:', shareData)
+    console.log('musicDuration值:', shareData.musicDuration)
     
     // 调用创建分享API
     await createShare(shareData)
@@ -477,14 +457,53 @@ const handleCancel = () => {
   router.back()
 }
 
+// 格式化时间
+const formatTime = (timeString) => {
+  const time = new Date(timeString)
+  const now = new Date()
+  const diff = now - time
+  
+  const minutes = Math.floor(diff / 60000)
+  const hours = Math.floor(diff / 3600000)
+  const days = Math.floor(diff / 86400000)
+  
+  if (minutes < 60) {
+    return `${minutes}分钟前`
+  } else if (hours < 24) {
+    return `${hours}小时前`
+  } else if (days < 7) {
+    return `${days}天前`
+  } else {
+    return time.toLocaleDateString()
+  }
+}
+
+// 加载最近分享
+const loadRecentShares = async () => {
+  try {
+    const userShares = await fetchUserShares()
+    // 取最近5条分享
+    recentShares.value = userShares.slice(0, 5).map(share => ({
+      id: share.id,
+      musicTitle: share.musicTitle,
+      musicArtist: share.musicArtist,
+      musicCover: share.musicCover || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Crect fill='%2342b983' width='200' height='200'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-size='80' fill='white'%3E🎵%3C/text%3E%3C/svg%3E",
+      time: formatTime(share.createdAt)
+    }))
+  } catch (error) {
+    console.error('加载最近分享失败:', error)
+  }
+}
+
 onMounted(() => {
   // 页面初始化
+  loadRecentShares()
 })
 </script>
 
 <style scoped>
 .share-create-page {
-  background-color: #f8f9fa;
+  background-color: #fffdf8;
   min-height: 100vh;
 }
 
@@ -496,7 +515,7 @@ onMounted(() => {
 }
 
 .header-content {
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
   padding: 0 20px;
 }
@@ -516,7 +535,7 @@ onMounted(() => {
 
 /* 主要内容 */
 .main-content {
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
   padding: 24px 20px;
 }
@@ -591,12 +610,12 @@ onMounted(() => {
 
 .music-item:hover {
   border-color: #e8f4ff;
-  background: #f8fafc;
+  background: #fffdf8;
 }
 
 .music-item.selected {
   border-color: #1890ff;
-  background: #f0f7ff;
+  background: #fffdf8;
 }
 
 .music-cover {
@@ -684,7 +703,7 @@ onMounted(() => {
   align-items: center;
   gap: 12px;
   padding: 16px;
-  background: #f8fafc;
+  background: #fffdf8;
   border-radius: 8px;
   border: 1px solid #e8e8e8;
 }

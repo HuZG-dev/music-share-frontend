@@ -53,10 +53,9 @@
                   <div class="avatar-upload">
                     <el-avatar :size="80" :src="userInfo.avatar" />
                     <el-upload
-                      action="/api/upload/avatar"
+                      :http-request="handleCustomAvatarUpload"
                       :show-file-list="false"
                       :before-upload="beforeAvatarUpload"
-                      :on-success="handleAvatarSuccess"
                       class="avatar-uploader"
                     >
                       <el-button type="primary" text>更换头像</el-button>
@@ -272,23 +271,16 @@ import {
   Lock,
   Link
 } from '@element-plus/icons-vue'
+import { useUserStore } from '@/stores/user'
+import { storeToRefs } from 'pinia'
+import request from '@/api/request'
 
 const router = useRouter()
+const userStore = useUserStore()
+const { userInfo } = storeToRefs(userStore)
 
 // 当前激活的标签页
 const activeTab = ref('profile')
-
-// 用户信息
-const userInfo = ref({
-  id: 1,
-  phone: '138****5678',
-  nickname: '音乐爱好者',
-  avatar: '',
-  bio: '热爱音乐，分享美好',
-  gender: 'unknown',
-  birthday: '',
-  region: []
-})
 
 // 个人资料表单
 const profileForm = reactive({
@@ -298,6 +290,55 @@ const profileForm = reactive({
   birthday: '',
   region: []
 })
+
+// 头像上传相关
+const beforeAvatarUpload = (file) => {
+  const isJPG = file.type === 'image/jpeg'
+  const isPNG = file.type === 'image/png'
+  const isLt2M = file.size / 1024 / 1024 < 2
+
+  if (!isJPG && !isPNG) {
+    ElMessage.error('头像只能是 JPG 或 PNG 格式!')
+    return false
+  }
+  if (!isLt2M) {
+    ElMessage.error('头像大小不能超过 2MB!')
+    return false
+  }
+  return true
+}
+
+const handleCustomAvatarUpload = (options) => {
+  const { file, onSuccess, onError } = options
+  // 检查file对象的结构
+  console.log('收到的file对象:', file)
+  
+  // element-plus的upload组件在不同版本中返回的file对象结构可能不同
+  const actualFile = file.raw || file
+  const formData = new FormData()
+  formData.append('file', actualFile)
+  console.log('构建的FormData:', formData)
+  console.log('FormData包含的文件:', formData.get('file'))
+
+  // 使用已配置好的request对象，让拦截器处理Authorization头
+  request.post('/user/avatar', formData).then(response => {
+    console.log('头像上传响应:', response)
+    if (response.code === 200 && response.data) {
+      userStore.updateUserInfo({ avatar: response.data.avatar })
+      ElMessage.success('头像上传成功')
+      onSuccess(response)
+    } else {
+      ElMessage.error(response.message || '头像上传失败')
+      onError(response)
+    }
+  }).catch(error => {
+    console.error('头像上传失败:', error)
+    console.error('错误响应:', error.response)
+    console.error('错误详情:', error.response ? error.response.data : '无响应数据')
+    ElMessage.error('头像上传失败，请重试')
+    onError(error)
+  })
+}
 
 // 账号绑定状态
 const bindings = reactive({
@@ -344,31 +385,10 @@ const handleMenuSelect = (key) => {
   activeTab.value = key
 }
 
-const beforeAvatarUpload = (file) => {
-  const isJPG = file.type === 'image/jpeg'
-  const isPNG = file.type === 'image/png'
-  const isLt2M = file.size / 1024 / 1024 < 2
-
-  if (!isJPG && !isPNG) {
-    ElMessage.error('头像只能是 JPG 或 PNG 格式!')
-    return false
-  }
-  if (!isLt2M) {
-    ElMessage.error('头像大小不能超过 2MB!')
-    return false
-  }
-  return true
-}
-
-const handleAvatarSuccess = (response) => {
-  userInfo.value.avatar = response.url
-  ElMessage.success('头像上传成功')
-}
-
 const saveProfile = async () => {
   try {
     // 调用API保存个人资料
-    Object.assign(userInfo.value, profileForm)
+    userStore.updateUserInfo(profileForm)
     ElMessage.success('个人资料更新成功')
   } catch (error) {
     ElMessage.error('更新失败')
@@ -463,7 +483,7 @@ const showAccountDeletionDialog = async () => {
 
 // 初始化数据
 onMounted(() => {
-  // 加载用户数据
+  // 从userStore获取当前用户数据
   Object.assign(profileForm, {
     nickname: userInfo.value.nickname,
     bio: userInfo.value.bio,
@@ -476,7 +496,7 @@ onMounted(() => {
 
 <style scoped>
 .settings-page {
-  background-color: #f8f9fa;
+  background-color: #fffdf8;
   min-height: 100vh;
 }
 
@@ -488,7 +508,7 @@ onMounted(() => {
 }
 
 .header-content {
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
   padding: 0 20px;
 }
@@ -502,7 +522,7 @@ onMounted(() => {
 
 /* 主要内容 */
 .main-content {
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
   padding: 24px 20px;
 }
@@ -530,7 +550,7 @@ onMounted(() => {
 }
 
 .settings-menu .el-menu-item.is-active {
-  background-color: #f0f7ff;
+  background-color: #fffdf8;
   color: #1890ff;
 }
 

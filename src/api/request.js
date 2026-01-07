@@ -22,6 +22,14 @@ request.interceptors.request.use(
     } else {
       console.log('未找到token，请求将不包含Authorization头')
     }
+    
+    // 确保multipart/form-data请求不被覆盖Content-Type
+    if (config.data instanceof FormData) {
+      console.log('检测到FormData请求，移除默认Content-Type头')
+      // 移除默认的Content-Type头，让浏览器自动添加正确的Content-Type和boundary
+      delete config.headers['Content-Type']
+    }
+    
     console.log('请求配置:', config)
     return config
   },

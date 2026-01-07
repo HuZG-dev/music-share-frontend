@@ -153,7 +153,7 @@ const handleRegister = async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #fffdf8;
 }
 
 .register-form {
@@ -176,7 +176,7 @@ const handleRegister = async () => {
 }
 
 .register-links a {
-  color: #667eea;
+  color: #e07c5c;
   text-decoration: none;
 }
 

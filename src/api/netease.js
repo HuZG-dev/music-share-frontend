@@ -13,11 +13,7 @@ const neteaseApi = axios.create({
 // 创建网易云音乐官方搜索API实例
 const neteaseSearchApi = axios.create({
   baseURL: '/api/netease/', // 使用Vite代理解决跨域问题
-  timeout: 10000,
-  headers: {
-    'Content-Type': 'application/json',
-    'Referer': 'https://music.163.com/'
-  }
+  timeout: 10000
 })
 
 // 验证封面URL是否有效
@@ -71,8 +67,12 @@ const isValidCoverUrl = (url) => {
 
 // 格式化响应数据
 const formatMusicData = (music) => {
-  // 直接使用封面URL，不进行验证
-  const pic = music.pic || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Crect fill='%2342b983' width='200' height='200'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-size='80' fill='white'%3E🎵%3C/text%3E%3C/svg%3E"
+  // 使用data URI作为默认封面
+  const defaultCover = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Crect fill='%2342b983' width='200' height='200'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-size='80' fill='white'%3E🎵%3C/text%3E%3C/svg%3E"
+  const pic = music.pic || defaultCover
+  
+  // 处理时长（毫秒转秒）
+  const duration = music.duration ? Math.floor(music.duration / 1000) : music.time ? Math.floor(music.time / 1000) : 0
   
   return {
     id: music.id,
@@ -81,7 +81,8 @@ const formatMusicData = (music) => {
     album: music.album,
     url: music.url,
     pic: pic,
-    lrc: music.lrc
+    lrc: music.lrc,
+    duration: duration
   }
 }
 
@@ -95,12 +96,19 @@ const formatMusicList = (musicList) => {
 const formatOfficialMusicData = (music) => {
   // 处理歌手信息，将数组转换为字符串
   const artist = music.artists.map(artist => artist.name).join(' / ')
-  // 直接使用封面URL，不进行验证
+  
+  // 优先使用 album.picUrl，如果不存在则使用 album.blurPicUrl 或默认图片
   let pic = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Crect fill='%2342b983' width='200' height='200'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-size='80' fill='white'%3E🎵%3C/text%3E%3C/svg%3E"
   
-  if (music.album && music.album.picUrl) {
-    pic = music.album.picUrl
+  if (music.album) {
+    if (music.album.picUrl) {
+      pic = music.album.picUrl
+    } else if (music.album.blurPicUrl) {
+      pic = music.album.blurPicUrl
+    }
   }
+  
+  console.log(`格式化歌曲数据 - ID: ${music.id}, 名称: ${music.name}, 封面: ${pic}`)
   
   // 计算时长（毫秒转秒）
   const duration = music.duration ? Math.floor(music.duration / 1000) : 0
@@ -455,7 +463,7 @@ export const searchMusic = async (keyword, limit = 10) => {
           // 重试机制：最多重试2次
           let retryCount = 0
           const maxRetries = 2
-          const defaultPic = 'https://via.placeholder.com/64x64/42b983/ffffff?text=🎵'
+          const defaultPic = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Crect fill='%2342b983' width='200' height='200'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-size='80' fill='white'%3E🎵%3C/text%3E%3C/svg%3E"
           
           while (retryCount <= maxRetries) {
             try {
@@ -519,7 +527,8 @@ export const searchMusic = async (keyword, limit = 10) => {
             // 格式化第三方API返回的数据
             const data = response.data.map(music => {
               // 检查并记录封面URL情况
-              let pic = 'https://via.placeholder.com/64x64/42b983/ffffff?text=🎵'
+              const defaultPic = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Crect fill='%2342b983' width='200' height='200'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-size='80' fill='white'%3E🎵%3C/text%3E%3C/svg%3E"
+              let pic = defaultPic
               if (!music.pic) {
                 console.log(`第三方API未返回封面URL (歌曲ID: ${music.id}, 歌曲名: ${music.name})`)
               } else {
@@ -560,8 +569,8 @@ export const searchMusic = async (keyword, limit = 10) => {
     // 如果搜索结果不为空，返回结果；否则返回模拟数据
     if (searchResults && searchResults.length > 0) {
       // 检查返回结果中的封面URL情况
-      const resultsWithCovers = searchResults.filter(music => music.pic && !music.pic.includes('placeholder.com'))
-      const resultsWithDefaultCovers = searchResults.filter(music => music.pic && music.pic.includes('placeholder.com'))
+      const resultsWithCovers = searchResults.filter(music => music.pic && !music.pic.includes('data:image'))
+      const resultsWithDefaultCovers = searchResults.filter(music => music.pic && music.pic.includes('data:image'))
       console.log(`搜索结果总结: 总数量=${searchResults.length}, 真实封面=${resultsWithCovers.length}, 默认封面=${resultsWithDefaultCovers.length}`)
       return searchResults
     } else {

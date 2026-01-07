@@ -5,7 +5,8 @@
       <div class="header-left">
         <div class="logo">
           <router-link to="/">
-            <h2>🎵 拾音</h2>
+            <img src="/logo.png" alt="拾音" class="logo-img" />
+            <span class="logo-text">拾音</span>
           </router-link>
         </div>
         <nav class="main-nav">
@@ -20,7 +21,7 @@
       <div class="search-container">
         <el-input
           v-model="searchKeyword"
-          placeholder="搜索音乐、用户..."
+          placeholder="搜索音乐、分享..."
           class="search-input"
           @keyup.enter="handleSearch"
         >
@@ -215,17 +216,17 @@ onUnmounted(() => {
 
 <style scoped>
 .app-header {
-  background-color: #2c3e50;
-  color: white;
+  background-color: #fffaf7;
+  color: #333;
   padding: 0 20px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
   position: sticky;
   top: 0;
   z-index: 1000;
 }
 
 .header-content {
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
   display: flex;
   justify-content: space-between;
@@ -241,14 +242,22 @@ onUnmounted(() => {
   gap: 40px;
 }
 
-.logo h2 {
-  color: #42b983;
-  margin: 0;
+.logo-img {
+  height: 36px;
+  width: auto;
+}
+
+.logo-text {
   font-size: 20px;
+  font-weight: 600;
+  color: #e07c5c;
+  margin-left: 8px;
 }
 
 .logo a {
   text-decoration: none;
+  display: flex;
+  align-items: center;
 }
 
 /* 主导航 */
@@ -259,7 +268,7 @@ onUnmounted(() => {
 }
 
 .nav-item {
-  color: white;
+  color: #333;
   text-decoration: none;
   padding: 8px 16px;
   border-radius: 6px;
@@ -269,12 +278,12 @@ onUnmounted(() => {
 }
 
 .nav-item:hover {
-  background-color: rgba(255,255,255,0.1);
-  color: #42b983;
+  background-color: rgba(0,0,0,0.05);
+  color: #e07c5c;
 }
 
 .nav-item.router-link-active {
-  background-color: #42b983;
+  background-color: #e07c5c;
   color: white;
 }
 
@@ -289,8 +298,8 @@ onUnmounted(() => {
 }
 
 .search-input :deep(.el-input-group__append) {
-  background-color: #42b983;
-  border-color: #42b983;
+  background-color: #e07c5c;
+  border-color: #e07c5c;
 }
 
 .search-input :deep(.el-input-group__append .el-button) {
@@ -298,7 +307,7 @@ onUnmounted(() => {
 }
 
 .search-input :deep(.el-input-group__append .el-button:hover) {
-  background-color: #3aa876;
+  background-color: #d06a4a;
 }
 
 /* 右侧区域 */
@@ -326,7 +335,7 @@ onUnmounted(() => {
 }
 
 .share-container:hover {
-  background-color: rgba(255,255,255,0.1);
+  background-color: rgba(0,0,0,0.05);
 }
 
 .share-btn {
@@ -336,19 +345,19 @@ onUnmounted(() => {
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  background-color: #42b983;
+  background-color: #e07c5c;
   color: white;
   transition: all 0.3s ease;
 }
 
 .share-btn:hover {
-  background-color: #3aa876;
+  background-color: #d06a4a;
   transform: scale(1.05);
 }
 
 .share-text {
   font-size: 12px;
-  color: white;
+  color: #333;
   line-height: 1;
 }
 
@@ -369,12 +378,12 @@ onUnmounted(() => {
 }
 
 .user-avatar:hover {
-  background-color: rgba(255,255,255,0.1);
+  background-color: rgba(0,0,0,0.05);
 }
 
 .user-name {
   font-size: 14px;
-  color: white;
+  color: #333;
 }
 
 /* 登录注册链接 */
@@ -384,7 +393,7 @@ onUnmounted(() => {
 }
 
 .auth-link {
-  color: white;
+  color: #333;
   text-decoration: none;
   padding: 8px 16px;
   border-radius: 6px;
@@ -393,15 +402,16 @@ onUnmounted(() => {
 }
 
 .auth-link:hover {
-  background-color: rgba(255,255,255,0.1);
+  background-color: rgba(0,0,0,0.05);
 }
 
 .auth-link:first-child {
-  background-color: #42b983;
+  background-color: #e07c5c;
+  color: white;
 }
 
 .auth-link:first-child:hover {
-  background-color: #3aa876;
+  background-color: #d06a4a;
 }
 
 /* 下拉菜单项样式 */

@@ -455,11 +455,27 @@ watch(
         
         // 如果需要自动播放新歌曲
         if (props.autoplay) {
-          console.log('设置了自动播放，等待音频加载后调用togglePlay')
-          // 延迟一下，确保音频元素已经初始化完成
-          setTimeout(() => {
-            togglePlay()
-          }, 100)
+          console.log('设置了自动播放，等待音频加载后自动播放')
+          // 监听音频加载完成事件
+          const playWhenReady = () => {
+            console.log('音频已准备好，开始自动播放')
+            if (audioElement.value && audioElement.value.readyState >= 3) {
+              audioElement.value.play().then(() => {
+                console.log('自动播放成功')
+                isPlaying.value = true
+              }).catch(err => {
+                console.error('自动播放失败:', err)
+              })
+            }
+          }
+          
+          // 如果已经加载完成，直接播放
+          if (audioElement.value && audioElement.value.readyState >= 3) {
+            setTimeout(playWhenReady, 200)
+          } else {
+            // 否则等待加载完成
+            audioElement.value?.addEventListener('canplaythrough', playWhenReady, { once: true })
+          }
         }
       } else {
         console.error('无效的URL，无法初始化音频:', newUrl)
@@ -549,6 +565,7 @@ onUnmounted(() => {
   align-items: flex-end;
   gap: 12px;
   flex: 2;
+  min-width: 300px;
 }
 
 .progress-section {
@@ -568,7 +585,7 @@ onUnmounted(() => {
 .progress-container {
   flex: 1;
   height: 8px;
-  background-color: #f0f0f0;
+  background-color: #f5ebe8;
   border-radius: 4px;
   position: relative;
   overflow: visible;
@@ -578,7 +595,7 @@ onUnmounted(() => {
 
 .progress-bar {
   height: 100%;
-  background-color: #42b983;
+  background-color: #e07c5c;
   border-radius: 4px;
   transition: width 0.1s ease;
   position: absolute;
@@ -594,7 +611,7 @@ onUnmounted(() => {
   transform: translate(-50%, -50%);
   width: 14px;
   height: 14px;
-  background-color: #42b983;
+  background-color: #e07c5c;
   border-radius: 50%;
   cursor: pointer;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);

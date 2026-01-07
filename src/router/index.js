@@ -60,6 +60,11 @@ const routes = [
     component: UserProfile
   },
   {
+    path: '/user/:id',
+    name: 'other-user-profile',
+    component: () => import('@/views/OtherUserProfile.vue')
+  },
+  {
     path: '/create-share',
     name: 'create-share',
     component: CreateShare,

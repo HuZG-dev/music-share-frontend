@@ -132,7 +132,7 @@ const formatCount = (count) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #42b983;
+  color: #e07c5c;
 }
 
 .cover-info {
@@ -160,14 +160,14 @@ const formatCount = (count) => {
   margin: 0 0 8px 0;
   font-size: 16px;
   font-weight: 600;
-  color: #333;
+  color: #333333;
   line-height: 1.4;
 }
 
 .artist-name {
   margin: 0 0 12px 0;
   font-size: 14px;
-  color: #666;
+  color: #333333;
 }
 
 .user-info {
@@ -178,7 +178,7 @@ const formatCount = (count) => {
 
 .user-name {
   font-size: 14px;
-  color: #666;
+  color: #333333;
 }
 
 /* 文本截断工具类 */
