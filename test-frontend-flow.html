@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>前端登录和分享测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+        }
+        .btn {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .btn:hover {
+            background-color: #0056b3;
+        }
+        .log {
+            background-color: #f5f5f5;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+        }
+        input {
+            padding: 8px;
+            margin: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        label {
+            display: inline-block;
+            width: 100px;
+            text-align: right;
+        }
+    </style>
+</head>
+<body>
+    <h1>前端登录和分享测试</h1>
+    
+    <!-- 登录测试 -->
+    <div class="section">
+        <h2>1. 登录测试</h2>
+        <div>
+            <label for="phone">手机号:</label>
+            <input type="text" id="phone" value="13800138001">
+        </div>
+        <div>
+            <label for="password">密码:</label>
+            <input type="password" id="password" value="123456">
+        </div>
+        <button class="btn" onclick="testLogin()">测试登录</button>
+        <button class="btn" onclick="clearToken()">清除Token</button>
+        <button class="btn" onclick="checkToken()">检查Token</button>
+    </div>
+    
+    <!-- 分享测试 -->
+    <div class="section">
+        <h2>2. 分享测试</h2>
+        <button class="btn" onclick="testCreateShare()">测试创建分享</button>
+    </div>
+    
+    <!-- 用户分享列表测试 -->
+    <div class="section">
+        <h2>3. 用户分享列表测试</h2>
+        <button class="btn" onclick="testUserShares()">获取用户分享列表</button>
+    </div>
+    
+    <!-- 日志输出 -->
+    <div class="section">
+        <h2>日志输出</h2>
+        <div class="log" id="log"></div>
+    </div>
+    
+    <script>
+        // 后端API地址
+        const API_BASE_URL = 'http://localhost:8080/api';
+        
+        // 日志输出函数
+        function log(message, level = 'info') {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleString();
+            const levelColor = {
+                'info': '#000',
+                'success': '#28a745',
+                'error': '#dc3545',
+                'warn': '#ffc107'
+            };
+            logDiv.innerHTML += `<div style="color: ${levelColor[level] || '#000'}">[${timestamp}] [${level.toUpperCase()}] ${message}</div>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+        
+        // 测试登录
+        async function testLogin() {
+            const phone = document.getElementById('phone').value;
+            const password = document.getElementById('password').value;
+            
+            log('开始测试登录...');
+            log(`登录信息: 手机号=${phone}, 密码=${password}`);
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ phone, password }),
+                    credentials: 'include'
+                });
+                
+                const data = await response.json();
+                log(`登录响应: ${JSON.stringify(data)}`, response.ok ? 'success' : 'error');
+                
+                if (response.ok && data.code === 200 && data.data?.token) {
+                    const token = data.data.token;
+                    const userInfo = data.data.userInfo || data.data;
+                    
+                    // 保存token到localStorage
+                    localStorage.setItem('token', token);
+                    localStorage.setItem('userInfo', JSON.stringify(userInfo));
+                    
+                    log(`Token已保存到localStorage: ${token}`, 'success');
+                    log(`用户信息: ${JSON.stringify(userInfo)}`, 'success');
+                } else {
+                    log(`登录失败: ${data.message || '未知错误'}`, 'error');
+                }
+            } catch (error) {
+                log(`登录出错: ${error.message}`, 'error');
+            }
+        }
+        
+        // 清除Token
+        function clearToken() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('userInfo');
+            log('已清除localStorage中的token和用户信息', 'warn');
+        }
+        
+        // 检查Token
+        function checkToken() {
+            const token = localStorage.getItem('token');
+            const userInfo = localStorage.getItem('userInfo');
+            
+            log('检查localStorage中的token...');
+            log(`当前Token: ${token || '无'}`, token ? 'success' : 'warn');
+            log(`当前用户信息: ${userInfo || '无'}`, userInfo ? 'success' : 'warn');
+        }
+        
+        // 测试创建分享
+        async function testCreateShare() {
+            log('开始测试创建分享...');
+            
+            // 获取token
+            const token = localStorage.getItem('token');
+            if (!token) {
+                log('没有找到token，请先登录', 'error');
+                return;
+            }
+            
+            log(`使用token: ${token}`);
+            
+            const shareData = {
+                musicId: '123456',
+                musicTitle: '测试歌曲',
+                musicArtist: '测试歌手',
+                musicAlbum: '测试专辑',
+                musicCover: 'https://example.com/cover.jpg',
+                content: '测试分享内容',
+                tags: '测试,音乐',
+                privacy: 0
+            };
+            
+            log(`分享数据: ${JSON.stringify(shareData)}`);
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/shares`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(shareData),
+                    credentials: 'include'
+                });
+                
+                const data = await response.json();
+                log(`创建分享响应: ${JSON.stringify(data)}`, response.ok ? 'success' : 'error');
+                log(`响应状态码: ${response.status}`, response.ok ? 'success' : 'error');
+                
+                if (response.ok && data.code === 200) {
+                    log(`分享创建成功！分享ID: ${data.data?.id}`, 'success');
+                } else {
+                    log(`创建分享失败: ${data.message || '未知错误'}`, 'error');
+                }
+            } catch (error) {
+                log(`创建分享出错: ${error.message}`, 'error');
+            }
+        }
+        
+        // 测试获取用户分享列表
+        async function testUserShares() {
+            log('开始测试获取用户分享列表...');
+            
+            // 获取token
+            const token = localStorage.getItem('token');
+            if (!token) {
+                log('没有找到token，请先登录', 'error');
+                return;
+            }
+            
+            log(`使用token: ${token}`);
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/shares/user`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    credentials: 'include'
+                });
+                
+                const data = await response.json();
+                log(`获取用户分享列表响应: ${JSON.stringify(data)}`, response.ok ? 'success' : 'error');
+                log(`响应状态码: ${response.status}`, response.ok ? 'success' : 'error');
+                
+                if (response.ok && data.code === 200) {
+                    log(`用户共有 ${data.data?.length || 0} 个分享`, 'success');
+                } else {
+                    log(`获取用户分享列表失败: ${data.message || '未知错误'}`, 'error');
+                }
+            } catch (error) {
+                log(`获取用户分享列表出错: ${error.message}`, 'error');
+            }
+        }
+        
+        // 页面加载时自动检查token
+        window.onload = function() {
+            log('页面加载完成，自动检查token...');
+            checkToken();
+        };
+    </script>
+</body>
+</html>
