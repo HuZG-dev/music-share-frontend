@@ -11,7 +11,7 @@
       <el-tabs v-model="activeTab" type="card" @tab-change="handleTabChange">
         <el-tab-pane label="分享" name="shares">
           <!-- 分享结果列表 -->
-          <div class="result-list">
+          <div class="result-list share-result-list">
             <div v-if="loadingShares" class="loading">
               <el-skeleton :rows="5" animated />
             </div>
@@ -321,6 +321,11 @@ watch(
   gap: 20px;
 }
 
+/* 分享结果列表使用多列布局 */
+.share-result-list {
+  grid-template-columns: repeat(3, 1fr);
+}
+
 .song-list-scroll {
   max-height: 500px;
   overflow-y: auto;
@@ -470,6 +475,12 @@ watch(
   padding: 50px 0;
 }
 
+@media (max-width: 1024px) {
+  .share-result-list {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
 @media (max-width: 768px) {
   .search-result-container {
     padding: 10px;
@@ -479,8 +490,9 @@ watch(
     font-size: 24px;
   }
   
-  .result-list {
+  .share-result-list {
     grid-template-columns: 1fr;
+    gap: 12px;
   }
   
   .song-item {
