@@ -1,38 +1,42 @@
-# Music Share
+## Music Share
 
-一个基于 Vue 3 和 Spring Boot 的音乐分享平台，用户可以分享音乐、发现新歌、关注好友，并享受在线音乐播放体验。
+一个基于 **Vue 3 + Spring Boot** 的音乐分享平台：分享/浏览音乐动态、点赞评论、关注用户，并提供在线播放与音乐搜索体验。
 
-## 项目简介
+![首页](./images/index.png)
 
-Music Share 是一个现代化的音乐社交平台，集成了网易云音乐 API，允许用户：
-- 分享自己喜欢的音乐
-- 发现和搜索歌曲
-- 关注其他用户
-- 点赞和评论分享
-- 在线播放音乐
-- 查看热门推荐和分类音乐
+![创建分享](./images/create.png)
+
+![搜索结果](./images/search.png)
+
+### 项目概览
+
+- **前端**：`music-share-frontend`（Vite + Vue3 + Element Plus + Pinia）
+- **后端**：`music-share-backend`（Spring Boot + Spring Security + JWT + JPA）
+- **音乐数据来源（前端）**
+  - **搜索/专辑封面**：通过 **Vite 代理**转发到 `music.163.com`（开发环境下生效）
+  - **播放 URL/歌单等**：使用第三方 `meting` 接口（见 `music-share-frontend/src/api/netease.js`）
+
+> 仓库中有 `music-share-backend/NeteaseCloudMusicApi/` 目录，但当前仅保留 `README.MD/package-lock.json`，**不包含可运行服务**，也不会被本项目启动流程使用。
 
 ## 技术栈
 
 ### 前端
-- **框架**: Vue 3.5.22
-- **构建工具**: Vite 7.1.7
-- **UI 组件库**: Element Plus 2.11.4
-- **状态管理**: Pinia 3.0.4
-- **路由**: Vue Router 4.5.1
-- **HTTP 客户端**: Axios 1.13.2
-- **代码规范**: ESLint + Prettier
+
+- **框架**：Vue 3
+- **构建工具**：Vite
+- **UI**：Element Plus
+- **状态管理**：Pinia
+- **路由**：Vue Router
+- **网络请求**：Axios / Fetch
+- **代码规范**：ESLint + Prettier
 
 ### 后端
-- **框架**: Spring Boot 3.2.0
-- **数据库**: MySQL 8.0
-- **ORM**: Spring Data JPA
-- **安全**: Spring Security + JWT
-- **数据库连接池**: HikariCP
-- **构建工具**: Maven
 
-### 第三方服务
-- **网易云音乐 API**: NeteaseCloudMusicApi
+- **框架**：Spring Boot 3.2.0
+- **数据库**：MySQL 8（默认配置），依赖中包含 H2（runtime）
+- **ORM**：Spring Data JPA
+- **安全**：Spring Security + JWT
+- **构建工具**：Maven
 
 ## 功能特性
 
@@ -82,7 +86,7 @@ MusicShare/
 │   ├── package.json
 │   └── vite.config.js
 ├── music-share-backend/          # 后端项目
-│   ├── NeteaseCloudMusicApi/     # 网易云音乐 API
+│   ├── NeteaseCloudMusicApi/     # 仅保留说明文件（不含可运行服务）
 │   ├── src/main/java/com/fangyuan/musicsharebackend/
 │   │   ├── config/              # 配置类
 │   │   ├── controller/          # 控制器
@@ -110,7 +114,7 @@ MusicShare/
 - Maven 3.6+
 - MySQL 8.0+
 
-## 安装和运行
+## 快速开始（本地开发）
 
 ### 1. 克隆项目
 
@@ -142,6 +146,8 @@ jwt.secret=your_jwt_secret_key_change_this_in_production
 jwt.expiration=2592000000
 ```
 
+> 注意：仓库当前的 `application.properties` 里可能包含示例密码（如 `123456`），请务必按你的本机环境修改；生产环境不要把真实密钥/密码提交到仓库。
+
 ### 4. 启动后端
 
 ```bash
@@ -151,17 +157,9 @@ cd music-share-backend
 
 后端服务将在 `http://localhost:8080` 启动
 
-### 5. 启动网易云音乐 API
+> Windows 可用：`mvnw.cmd spring-boot:run`
 
-```bash
-cd music-share-backend/NeteaseCloudMusicApi
-npm install
-node app.js
-```
-
-网易云音乐 API 将在 `http://localhost:3000` 启动
-
-### 6. 启动前端
+### 5. 启动前端
 
 ```bash
 cd music-share-frontend
@@ -171,25 +169,99 @@ npm run dev
 
 前端服务将在 `http://localhost:5173` 启动
 
+### 6. 默认测试账号（后端启动后自动初始化）
+
+后端 `DataInitializer` 会在数据库中创建若干测试用户（若不存在则创建）：
+
+- **手机号**：`13812345678` / `13912345678` / `13712345678` / `13612345678` / `13512345678`
+- **密码**：`123456`
+
 ## API 接口
 
-### 后端 API
+### 后端 API（以 `http://localhost:8080` 为例）
 
-- `POST /api/auth/register` - 用户注册
-- `POST /api/auth/login` - 用户登录
-- `GET /api/shares` - 获取分享列表
-- `POST /api/shares` - 创建分享
-- `GET /api/shares/{id}` - 获取分享详情
-- `POST /api/shares/{id}/like` - 点赞分享
-- `POST /api/shares/{id}/comments` - 评论分享
-- `GET /api/users/{id}` - 获取用户信息
-- `POST /api/follow/{userId}` - 关注用户
+#### 认证
 
-### 网易云音乐 API
+- `POST /api/auth/register`：注册
+- `POST /api/auth/login`：登录
+- `POST /api/auth/logout`：注销
+- `GET /api/auth/check`：检查登录状态
+- `GET /api/auth/userinfo`：获取当前登录信息（简版）
 
-- `GET /search?keywords={keyword}` - 搜索歌曲
-- `GET /song/url?id={id}` - 获取歌曲播放 URL
-- `GET /song/detail?ids={ids}` - 获取歌曲详情
+#### 用户
+
+- `GET /api/user/info`：获取当前用户信息
+- `POST /api/user/avatar`：上传头像（`multipart/form-data`，需要 `Authorization: Bearer <token>`）
+- `GET /api/user/search?keyword=xxx`：搜索用户
+- `GET /api/user/{userId}`：获取用户信息
+- `GET /api/user/top?limit=5`：热门用户
+
+#### 分享
+
+- `GET /api/shares`：分享列表（会按隐私过滤）
+- `GET /api/shares/{id}`：分享详情（会按隐私过滤）
+- `GET /api/shares/search?keyword=xxx`：搜索分享（会按隐私过滤）
+- `GET /api/shares/user`：当前用户分享（需要登录）
+- `GET /api/shares/user/{userId}`：指定用户分享（会按隐私过滤）
+- `POST /api/shares`：创建分享（需要登录）
+- `PUT /api/shares/{id}`：更新分享（需要登录且为作者）
+- `POST /api/shares/delete/{id}`：删除分享（需要登录且为作者）
+
+#### 评论
+
+- `POST /api/comments`：创建评论（需要 `Authorization`）
+- `GET /api/comments/share/{shareId}`：评论列表
+- `DELETE /api/comments/{commentId}`：删除评论（需要 `Authorization`）
+- `GET /api/comments/count/{shareId}`：评论数量
+
+#### 点赞
+
+- `POST /api/likes/{shareId}`：点赞（需要 `Authorization`）
+- `DELETE /api/likes/{shareId}`：取消点赞（需要 `Authorization`）
+- `GET /api/likes/check/{shareId}`：点赞状态（需要 `Authorization`）
+- `GET /api/likes/user`：我点赞的分享（需要 `Authorization`）
+
+#### 收藏
+
+- `POST /api/collections/{shareId}`：收藏（需要 `Authorization`）
+- `DELETE /api/collections/{shareId}`：取消收藏（需要 `Authorization`）
+- `GET /api/collections/check/{shareId}`：收藏状态（需要 `Authorization`）
+- `GET /api/collections/user`：我的收藏（需要 `Authorization`）
+
+#### 关注
+
+- `POST /api/follows/{userId}`：关注（需要 `Authorization`）
+- `DELETE /api/follows/{userId}`：取消关注（需要 `Authorization`）
+- `GET /api/follows/check/{userId}`：关注状态（需要 `Authorization`）
+- `GET /api/follows/followings`：我的关注列表（需要 `Authorization`）
+- `GET /api/follows/followers`：我的粉丝列表（需要 `Authorization`）
+- `GET /api/follows/followings/{userId}`：指定用户关注列表
+- `GET /api/follows/followers/{userId}`：指定用户粉丝列表
+- `GET /api/follows/count/following/{userId}`：关注数
+- `GET /api/follows/count/follower/{userId}`：粉丝数
+
+#### 文件上传/访问
+
+- `POST /api/file/upload`：上传图片（`file` + `type`，默认 `temp`）
+- `DELETE /api/file/delete/{type}/{filename}`：删除文件
+- `GET /uploads/**`：静态访问上传文件（由 `file.upload-dir` 映射）
+
+#### 轮播图
+
+- `GET /api/banners`：获取轮播图
+
+#### 批量导入（开发/测试用）
+
+- `POST /api/share-batch/import?count=10`：批量导入分享
+- `GET /api/share-batch/count`：分享总数
+- `POST /api/share-batch/delete-all`：删除所有分享
+
+### 音乐搜索/播放（前端）
+
+- **搜索**：开发环境通过 `Vite proxy` 将 `/api/netease/**` 转发到 `music.163.com`（见 `music-share-frontend/vite.config.js`）
+- **播放 URL/歌单**：使用第三方 `meting` 接口（见 `music-share-frontend/src/api/netease.js`）
+
+> 生产环境如果仍要使用 `/api/netease`，需要在 Nginx/网关层做同等反向代理与请求头注入（Referer/Origin/User-Agent），否则浏览器会遇到跨域或访问限制。
 
 ## 开发指南
 
@@ -233,7 +305,8 @@ cd music-share-backend
 
 ### 前端配置
 
-前端 API 配置位于 `src/api/request.js`，根据需要修改后端 API 基础 URL。
+- 后端 API BaseURL：`music-share-frontend/src/api/request.js`（默认写死为 `http://localhost:8080/api`）
+- 网易云代理：`music-share-frontend/vite.config.js` 中的 `/api/netease` 代理仅在 `npm run dev` 时生效
 
 ### 后端配置
 
@@ -243,6 +316,7 @@ cd music-share-backend
 - **JPA 配置**: 数据库方言、DDL 策略、SQL 日志
 - **JWT 配置**: 密钥、过期时间
 - **日志配置**: 日志级别
+- **文件上传目录**: `file.upload-dir`（未配置时默认 `uploads`，并映射到 `/uploads/**`）
 
 ## 常见问题
 
@@ -255,8 +329,7 @@ cd music-share-backend
 确保后端服务已启动，检查 CORS 配置。
 
 ### 3. 音乐无法播放
-
-确保网易云音乐 API 服务已启动，检查 API 地址配置。
+检查 `music-share-frontend/src/api/netease.js` 中的第三方接口是否可用；若你依赖 `/api/netease` 的搜索能力，请确认开发代理或生产反向代理已正确配置。
 
 ## 贡献指南
 
@@ -268,4 +341,4 @@ MIT License
 
 ## 联系方式
 
-如有问题，请提交 Issue 或联系项目维护者。
+qq：2035978723
